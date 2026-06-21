@@ -91,6 +91,23 @@ const project = {
   ]
 };
 
+interface DefectRemark {
+  id: string;
+  gemId: string;
+  gemCode: string;
+  defectTypes: string[];
+  remark: string;
+  needConfirm: boolean;
+  createdAt: string;
+}
+
+const DEFECT_TYPE_OPTIONS = [
+  { label: "内含物明显", icon: "🔬" },
+  { label: "颜色偏差", icon: "🎨" },
+  { label: "尺寸不符", icon: "📐" },
+  { label: "表面划痕", icon: "✦" },
+];
+
 const SHAPE_OPTIONS = ["圆形", "椭圆", "梨形", "祖母绿切", "心形", "马眼形"];
 
 const gemstones: Gemstone[] = [
@@ -126,6 +143,54 @@ function App() {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [formData, setFormData] = useState<BatchFormData>(initialFormData);
   const [showBatchForm, setShowBatchForm] = useState(false);
+
+  const [defectRemarks, setDefectRemarks] = useState<DefectRemark[]>([]);
+  const [selectedGemId, setSelectedGemId] = useState<string>("");
+  const [selectedDefectTypes, setSelectedDefectTypes] = useState<string[]>([]);
+  const [defectRemarkText, setDefectRemarkText] = useState("");
+  const [needConfirm, setNeedConfirm] = useState(false);
+  const [showDefectPanel, setShowDefectPanel] = useState(false);
+
+  const toggleDefectType = (type: string) => {
+    setSelectedDefectTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+    );
+  };
+
+  const handleSubmitDefect = () => {
+    if (!selectedGemId) {
+      alert("请先选择一颗宝石");
+      return;
+    }
+    if (selectedDefectTypes.length === 0) {
+      alert("请至少选择一种缺陷类型");
+      return;
+    }
+    const gem = gemstones.find((g) => g.id === selectedGemId);
+    if (!gem) return;
+    const newRemark: DefectRemark = {
+      id: `defect-${Date.now()}`,
+      gemId: selectedGemId,
+      gemCode: gem.code,
+      defectTypes: [...selectedDefectTypes],
+      remark: defectRemarkText,
+      needConfirm,
+      createdAt: new Date().toLocaleString("zh-CN"),
+    };
+    setDefectRemarks((prev) => [newRemark, ...prev]);
+    setSelectedGemId("");
+    setSelectedDefectTypes([]);
+    setDefectRemarkText("");
+    setNeedConfirm(false);
+    setShowDefectPanel(false);
+  };
+
+  const resetDefectForm = () => {
+    setSelectedGemId("");
+    setSelectedDefectTypes([]);
+    setDefectRemarkText("");
+    setNeedConfirm(false);
+  };
 
   const [selectedShapes, setSelectedShapes] = useState<string[]>([]);
   const [sizeMin, setSizeMin] = useState("");
@@ -547,6 +612,161 @@ function App() {
         </section>
       </section>
 
+      <section className="defect-section">
+        <section className="panel defect-panel">
+          <div className="heading">
+            <div>
+              <p>缺陷管理</p>
+              <h2>宝石缺陷备注</h2>
+            </div>
+            <div className="heading-actions">
+              <button
+                className="primary"
+                onClick={() => {
+                  setShowDefectPanel(!showDefectPanel);
+                  if (showDefectPanel) resetDefectForm();
+                }}
+              >
+                {showDefectPanel ? "取消" : "+ 新增缺陷备注"}
+              </button>
+            </div>
+          </div>
+
+          {showDefectPanel && (
+            <div className="defect-form">
+              <h3>登记缺陷信息</h3>
+              <div className="defect-form-body">
+                <div className="defect-form-left">
+                  <label className="defect-field">
+                    <span>选择宝石 *</span>
+                    <select
+                      value={selectedGemId}
+                      onChange={(e) => setSelectedGemId(e.target.value)}
+                    >
+                      <option value="">-- 请选择宝石 --</option>
+                      {gemstones.map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.code} - {g.type} {g.shape} {g.carat}ct
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="defect-field">
+                    <span>缺陷类型 *</span>
+                    <div className="defect-type-chips">
+                      {DEFECT_TYPE_OPTIONS.map((dt) => (
+                        <button
+                          key={dt.label}
+                          className={`defect-type-chip ${selectedDefectTypes.includes(dt.label) ? "active" : ""}`}
+                          onClick={() => toggleDefectType(dt.label)}
+                          type="button"
+                        >
+                          <span className="dt-icon">{dt.icon}</span>
+                          {dt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </label>
+
+                  <label className="defect-field">
+                    <span>备注说明</span>
+                    <textarea
+                      placeholder="填写缺陷详细描述，如内含物位置、划痕程度等"
+                      value={defectRemarkText}
+                      onChange={(e) => setDefectRemarkText(e.target.value)}
+                      rows={3}
+                    />
+                  </label>
+
+                  <div className="defect-confirm-row">
+                    <label className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={needConfirm}
+                        onChange={(e) => setNeedConfirm(e.target.checked)}
+                      />
+                      <span>需要客户确认</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="defect-form-right">
+                  {selectedGemId && (() => {
+                    const gem = gemstones.find((g) => g.id === selectedGemId);
+                    if (!gem) return null;
+                    return (
+                      <div className="defect-gem-preview">
+                        <h4>宝石信息预览</h4>
+                        <div className="preview-row"><span>编号</span><strong>{gem.code}</strong></div>
+                        <div className="preview-row"><span>种类</span><strong>{gem.type}</strong></div>
+                        <div className="preview-row"><span>形状</span><strong>{gem.shape}</strong></div>
+                        <div className="preview-row"><span>克拉</span><strong>{gem.carat}ct</strong></div>
+                        <div className="preview-row"><span>尺寸</span><strong>{gem.sizeL}×{gem.sizeW}mm</strong></div>
+                        <div className="preview-row"><span>净度</span><strong>{gem.clarity}</strong></div>
+                        <div className="preview-row"><span>颜色</span><strong>{gem.color}</strong></div>
+                        <div className="preview-row"><span>镶嵌位</span><strong>{gem.setting}</strong></div>
+                        <div className="preview-row"><span>状态</span><strong>{gem.status}</strong></div>
+                      </div>
+                    );
+                  })()}
+                  {!selectedGemId && (
+                    <div className="defect-gem-preview-empty">
+                      <div className="empty-icon">💎</div>
+                      <p>选择宝石后查看详情</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="defect-form-actions">
+                <button onClick={() => { resetDefectForm(); setShowDefectPanel(false); }}>取消</button>
+                <button className="primary" onClick={handleSubmitDefect}>提交缺陷备注</button>
+              </div>
+            </div>
+          )}
+
+          <div className="defect-records">
+            {defectRemarks.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">🔍</div>
+                <p>暂无缺陷备注记录，点击"新增缺陷备注"开始登记</p>
+              </div>
+            ) : (
+              defectRemarks.map((dr, index) => (
+                <article key={dr.id} className="defect-card">
+                  <div className="defect-card-index">
+                    <b>{String(index + 1).padStart(2, "0")}</b>
+                  </div>
+                  <div className="defect-card-body">
+                    <div className="defect-card-header">
+                      <h3>{dr.gemCode}</h3>
+                      <div className="defect-type-tags">
+                        {dr.defectTypes.map((dt) => {
+                          const opt = DEFECT_TYPE_OPTIONS.find((o) => o.label === dt);
+                          return (
+                            <span key={dt} className="defect-tag">
+                              {opt?.icon} {dt}
+                            </span>
+                          );
+                        })}
+                      </div>
+                      {dr.needConfirm && (
+                        <span className="confirm-badge">需客户确认</span>
+                      )}
+                    </div>
+                    {dr.remark && (
+                      <p className="defect-remark-text">{dr.remark}</p>
+                    )}
+                    <span className="defect-time">{dr.createdAt}</span>
+                  </div>
+                </article>
+              ))
+            )}
+          </div>
+        </section>
+      </section>
+
       <section className="panel">
         <div className="heading">
           <div>
@@ -556,6 +776,25 @@ function App() {
           <button>导出摘要</button>
         </div>
         <div className="records">
+          {defectRemarks.length > 0 && (
+            <>
+              <div className="records-section-label">缺陷备注摘要</div>
+              {defectRemarks.map((dr, index) => (
+                <article key={dr.id} className="workbench-card defect-workbench">
+                  <b className="workbench-index defect-index">{String(index + 1).padStart(2, "0")}</b>
+                  <div>
+                    <h3>{dr.gemCode}</h3>
+                    <p>
+                      {dr.defectTypes.join(" · ")}
+                      {dr.needConfirm && <span className="wb-confirm-tag">需客户确认</span>}
+                      {dr.remark && ` — ${dr.remark}`}
+                    </p>
+                  </div>
+                </article>
+              ))}
+            </>
+          )}
+          <div className="records-section-label">系统记录</div>
           {project.records.map((record: string[], index: number) => (
             <article key={record.join("-")}>
               <b>{String(index + 1).padStart(2, "0")}</b>

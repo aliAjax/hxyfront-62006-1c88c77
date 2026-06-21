@@ -729,3 +729,354 @@ input {
     gap: 8px;
   }
 }
+
+.defect-section {
+  margin-bottom: 18px;
+}
+
+.defect-panel {
+  display: grid;
+  gap: 20px;
+}
+
+.defect-form {
+  padding: 20px;
+  background: #f8fafc;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  display: grid;
+  gap: 18px;
+}
+
+.defect-form h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #172033;
+}
+
+.defect-form-body {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 20px;
+}
+
+.defect-form-left {
+  display: grid;
+  gap: 16px;
+}
+
+.defect-field {
+  display: grid;
+  gap: 8px;
+}
+
+.defect-field span {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.defect-field select {
+  width: 100%;
+  min-height: 42px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  padding: 0 12px;
+  background: #ffffff;
+  font: inherit;
+  color: #172033;
+  cursor: pointer;
+}
+
+.defect-field textarea {
+  width: 100%;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  font: inherit;
+  color: #172033;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.defect-type-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.defect-type-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  min-height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: #ffffff;
+  color: #172033;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.defect-type-chip .dt-icon {
+  font-size: 15px;
+}
+
+.defect-type-chip.active {
+  background: color-mix(in srgb, var(--primary) 10%, #ffffff);
+  border-color: var(--primary);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.defect-type-chip:hover {
+  border-color: var(--primary);
+}
+
+.defect-confirm-row {
+  display: flex;
+  align-items: center;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.checkbox-label span {
+  font-size: 14px;
+  color: #475569;
+}
+
+.defect-form-right {
+  display: grid;
+  align-content: start;
+}
+
+.defect-gem-preview {
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: grid;
+  gap: 10px;
+}
+
+.defect-gem-preview h4 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.preview-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.preview-row:last-child {
+  border-bottom: none;
+}
+
+.preview-row span {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.preview-row strong {
+  font-size: 13px;
+  color: #172033;
+}
+
+.defect-gem-preview-empty {
+  display: grid;
+  place-items: center;
+  padding: 40px 20px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.defect-gem-preview-empty .empty-icon {
+  font-size: 36px;
+  margin-bottom: 8px;
+}
+
+.defect-gem-preview-empty p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.defect-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.defect-records {
+  display: grid;
+  gap: 10px;
+}
+
+.defect-card {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 14px;
+  align-items: start;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fbfdff;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.defect-card:hover {
+  box-shadow: 0 8px 24px rgba(31, 41, 55, 0.08);
+  transform: translateY(-1px);
+}
+
+.defect-card-index {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--primary), #e11d48);
+  color: #ffffff;
+  font-size: 15px;
+}
+
+.defect-card-body {
+  display: grid;
+  gap: 8px;
+}
+
+.defect-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.defect-card-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #172033;
+}
+
+.defect-type-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.defect-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 10%, #ffffff);
+  border-radius: 999px;
+}
+
+.confirm-badge {
+  display: inline-flex;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #b45309;
+  background: color-mix(in srgb, #f59e0b 14%, #ffffff);
+  border: 1px solid color-mix(in srgb, #f59e0b 30%, var(--border));
+  border-radius: 999px;
+}
+
+.defect-remark-text {
+  margin: 0;
+  font-size: 13px;
+  color: #526071;
+  line-height: 1.6;
+  padding: 6px 10px;
+  background: #f1f5f9;
+  border-radius: 6px;
+}
+
+.defect-time {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.records-section-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 6px 0 2px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+
+.workbench-card {
+  display: grid;
+  grid-template-columns: 54px 1fr;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fbfdff;
+}
+
+.defect-workbench {
+  border-left: 3px solid var(--primary);
+}
+
+.defect-index {
+  background: linear-gradient(135deg, var(--primary), #e11d48) !important;
+}
+
+.wb-confirm-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #b45309;
+  background: color-mix(in srgb, #f59e0b 12%, #ffffff);
+  border-radius: 999px;
+}
+
+@media (max-width: 860px) {
+  .defect-form-body {
+    grid-template-columns: 1fr;
+  }
+
+  .defect-card {
+    grid-template-columns: 40px 1fr;
+  }
+
+  .defect-card-index {
+    width: 40px;
+    height: 40px;
+    font-size: 13px;
+  }
+}
