@@ -56,6 +56,29 @@ interface Gemstone {
   status: SortingStatus;
   batchId: string;
   orderNo: string;
+  defectRemark?: string;
+}
+
+interface GemstoneEditForm {
+  code: string;
+  type: string;
+  shape: string;
+  carat: string;
+  sizeL: string;
+  sizeW: string;
+  setting: string;
+  clarity: string;
+  color: string;
+  cut: string;
+  status: SortingStatus;
+  defectRemark: string;
+}
+
+interface FormErrors {
+  code?: string;
+  carat?: string;
+  sizeL?: string;
+  sizeW?: string;
 }
 
 const project = {
@@ -97,24 +120,24 @@ const SHAPE_OPTIONS = ["圆形", "椭圆", "梨形", "祖母绿切", "心形", "
 const STATUS_OPTIONS: SortingStatus[] = ["待镶嵌", "已确认", "需客户确认"];
 
 const initialGemstones: Gemstone[] = [
-  { id: "g1", code: "ST-2048", type: "蓝宝石", shape: "椭圆", carat: 0.85, sizeL: 6.0, sizeW: 4.0, setting: "主石位", clarity: "VS1", color: "皇家蓝", cut: "明亮式", status: "待镶嵌", batchId: "batch-1", orderNo: "ORD-88201" },
-  { id: "g2", code: "ST-2061", type: "钻石", shape: "圆形", carat: 0.08, sizeL: 2.5, sizeW: 2.5, setting: "围石A组", clarity: "VVS1", color: "D", cut: "理想切工", status: "待镶嵌", batchId: "batch-1", orderNo: "ORD-88201" },
-  { id: "g3", code: "ST-2099", type: "祖母绿", shape: "祖母绿切", carat: 1.20, sizeL: 7.0, sizeW: 5.0, setting: "主石位", clarity: "VS2", color: "翠绿", cut: "阶梯式", status: "需客户确认", batchId: "batch-1", orderNo: "ORD-88201" },
-  { id: "g4", code: "ST-2105", type: "红宝石", shape: "椭圆", carat: 1.05, sizeL: 7.0, sizeW: 5.0, setting: "主石位", clarity: "VS1", color: "鸽血红", cut: "明亮式", status: "已确认", batchId: "batch-1", orderNo: "ORD-88201" },
-  { id: "g5", code: "ST-2112", type: "钻石", shape: "圆形", carat: 0.05, sizeL: 2.0, sizeW: 2.0, setting: "围石B组", clarity: "VVS2", color: "E", cut: "极优良", status: "待镶嵌", batchId: "batch-1", orderNo: "ORD-88201" },
-  { id: "g6", code: "ST-2128", type: "碧玺", shape: "梨形", carat: 2.30, sizeL: 10.0, sizeW: 7.0, setting: "吊坠位", clarity: "SI1", color: "帕拉伊巴", cut: "明亮式", status: "待镶嵌", batchId: "batch-2", orderNo: "ORD-88201" },
-  { id: "g7", code: "ST-2135", type: "钻石", shape: "心形", carat: 0.50, sizeL: 5.0, sizeW: 5.0, setting: "副石位", clarity: "VS1", color: "F", cut: "理想切工", status: "已确认", batchId: "batch-2", orderNo: "ORD-88201" },
-  { id: "g8", code: "ST-2142", type: "蓝宝石", shape: "马眼形", carat: 0.75, sizeL: 8.0, sizeW: 4.0, setting: "围石C组", clarity: "VS2", color: "矢车菊蓝", cut: "明亮式", status: "待镶嵌", batchId: "batch-2", orderNo: "ORD-88201" },
-  { id: "g9", code: "ST-2150", type: "钻石", shape: "圆形", carat: 0.12, sizeL: 3.0, sizeW: 3.0, setting: "围石A组", clarity: "VVS1", color: "G", cut: "优良", status: "已确认", batchId: "batch-2", orderNo: "ORD-88201" },
-  { id: "g10", code: "ST-2167", type: "坦桑石", shape: "梨形", carat: 3.10, sizeL: 12.0, sizeW: 8.0, setting: "主石位", clarity: "SI2", color: "蓝紫", cut: "混合式", status: "需客户确认", batchId: "batch-3", orderNo: "ORD-99102" },
-  { id: "g11", code: "ST-2173", type: "钻石", shape: "椭圆", carat: 0.30, sizeL: 5.0, sizeW: 3.5, setting: "围石B组", clarity: "VS2", color: "H", cut: "极优良", status: "待镶嵌", batchId: "batch-3", orderNo: "ORD-99102" },
-  { id: "g12", code: "ST-2189", type: "红宝石", shape: "圆形", carat: 0.20, sizeL: 3.5, sizeW: 3.5, setting: "围石C组", clarity: "SI1", color: "玫红", cut: "明亮式", status: "已确认", batchId: "batch-3", orderNo: "ORD-99102" },
-  { id: "g13", code: "ST-2195", type: "祖母绿", shape: "祖母绿切", carat: 0.65, sizeL: 6.0, sizeW: 4.5, setting: "副石位", clarity: "VS1", color: "绿", cut: "阶梯式", status: "待镶嵌", batchId: "batch-3", orderNo: "ORD-99102" },
-  { id: "g14", code: "ST-2201", type: "钻石", shape: "马眼形", carat: 0.40, sizeL: 6.0, sizeW: 3.0, setting: "围石A组", clarity: "VVS1", color: "E", cut: "理想切工", status: "待镶嵌", batchId: "batch-4", orderNo: "ORD-99102" },
-  { id: "g15", code: "ST-2218", type: "尖晶石", shape: "心形", carat: 1.80, sizeL: 7.5, sizeW: 7.5, setting: "吊坠位", clarity: "VS2", color: "绝地武士", cut: "明亮式", status: "已确认", batchId: "batch-4", orderNo: "ORD-99102" },
-  { id: "g16", code: "ST-2225", type: "钻石", shape: "圆形", carat: 0.03, sizeL: 1.5, sizeW: 1.5, setting: "围石B组", clarity: "VVS1", color: "D", cut: "理想切工", status: "待镶嵌", batchId: "batch-4", orderNo: "ORD-99102" },
-  { id: "g17", code: "ST-2231", type: "蓝宝石", shape: "梨形", carat: 1.50, sizeL: 9.0, sizeW: 6.0, setting: "主石位", clarity: "IF", color: "帕帕拉恰", cut: "明亮式", status: "需客户确认", batchId: "batch-5", orderNo: "ORD-77305" },
-  { id: "g18", code: "ST-2248", type: "钻石", shape: "椭圆", carat: 0.15, sizeL: 4.0, sizeW: 3.0, setting: "围石C组", clarity: "VS1", color: "F", cut: "优良", status: "已确认", batchId: "batch-5", orderNo: "ORD-77305" },
+  { id: "g1", code: "ST-2048", type: "蓝宝石", shape: "椭圆", carat: 0.85, sizeL: 6.0, sizeW: 4.0, setting: "主石位", clarity: "VS1", color: "皇家蓝", cut: "明亮式", status: "待镶嵌", batchId: "batch-1", orderNo: "ORD-88201", defectRemark: "" },
+  { id: "g2", code: "ST-2061", type: "钻石", shape: "圆形", carat: 0.08, sizeL: 2.5, sizeW: 2.5, setting: "围石A组", clarity: "VVS1", color: "D", cut: "理想切工", status: "待镶嵌", batchId: "batch-1", orderNo: "ORD-88201", defectRemark: "" },
+  { id: "g3", code: "ST-2099", type: "祖母绿", shape: "祖母绿切", carat: 1.20, sizeL: 7.0, sizeW: 5.0, setting: "主石位", clarity: "VS2", color: "翠绿", cut: "阶梯式", status: "需客户确认", batchId: "batch-1", orderNo: "ORD-88201", defectRemark: "内含物明显，需客户确认是否接受" },
+  { id: "g4", code: "ST-2105", type: "红宝石", shape: "椭圆", carat: 1.05, sizeL: 7.0, sizeW: 5.0, setting: "主石位", clarity: "VS1", color: "鸽血红", cut: "明亮式", status: "已确认", batchId: "batch-1", orderNo: "ORD-88201", defectRemark: "" },
+  { id: "g5", code: "ST-2112", type: "钻石", shape: "圆形", carat: 0.05, sizeL: 2.0, sizeW: 2.0, setting: "围石B组", clarity: "VVS2", color: "E", cut: "极优良", status: "待镶嵌", batchId: "batch-1", orderNo: "ORD-88201", defectRemark: "" },
+  { id: "g6", code: "ST-2128", type: "碧玺", shape: "梨形", carat: 2.30, sizeL: 10.0, sizeW: 7.0, setting: "吊坠位", clarity: "SI1", color: "帕拉伊巴", cut: "明亮式", status: "待镶嵌", batchId: "batch-2", orderNo: "ORD-88201", defectRemark: "颜色饱和度高，内部有轻微棉絮" },
+  { id: "g7", code: "ST-2135", type: "钻石", shape: "心形", carat: 0.50, sizeL: 5.0, sizeW: 5.0, setting: "副石位", clarity: "VS1", color: "F", cut: "理想切工", status: "已确认", batchId: "batch-2", orderNo: "ORD-88201", defectRemark: "" },
+  { id: "g8", code: "ST-2142", type: "蓝宝石", shape: "马眼形", carat: 0.75, sizeL: 8.0, sizeW: 4.0, setting: "围石C组", clarity: "VS2", color: "矢车菊蓝", cut: "明亮式", status: "待镶嵌", batchId: "batch-2", orderNo: "ORD-88201", defectRemark: "" },
+  { id: "g9", code: "ST-2150", type: "钻石", shape: "圆形", carat: 0.12, sizeL: 3.0, sizeW: 3.0, setting: "围石A组", clarity: "VVS1", color: "G", cut: "优良", status: "已确认", batchId: "batch-2", orderNo: "ORD-88201", defectRemark: "" },
+  { id: "g10", code: "ST-2167", type: "坦桑石", shape: "梨形", carat: 3.10, sizeL: 12.0, sizeW: 8.0, setting: "主石位", clarity: "SI2", color: "蓝紫", cut: "混合式", status: "需客户确认", batchId: "batch-3", orderNo: "ORD-99102", defectRemark: "尺寸偏大，需确认镶嵌方案" },
+  { id: "g11", code: "ST-2173", type: "钻石", shape: "椭圆", carat: 0.30, sizeL: 5.0, sizeW: 3.5, setting: "围石B组", clarity: "VS2", color: "H", cut: "极优良", status: "待镶嵌", batchId: "batch-3", orderNo: "ORD-99102", defectRemark: "" },
+  { id: "g12", code: "ST-2189", type: "红宝石", shape: "圆形", carat: 0.20, sizeL: 3.5, sizeW: 3.5, setting: "围石C组", clarity: "SI1", color: "玫红", cut: "明亮式", status: "已确认", batchId: "batch-3", orderNo: "ORD-99102", defectRemark: "" },
+  { id: "g13", code: "ST-2195", type: "祖母绿", shape: "祖母绿切", carat: 0.65, sizeL: 6.0, sizeW: 4.5, setting: "副石位", clarity: "VS1", color: "绿", cut: "阶梯式", status: "待镶嵌", batchId: "batch-3", orderNo: "ORD-99102", defectRemark: "" },
+  { id: "g14", code: "ST-2201", type: "钻石", shape: "马眼形", carat: 0.40, sizeL: 6.0, sizeW: 3.0, setting: "围石A组", clarity: "VVS1", color: "E", cut: "理想切工", status: "待镶嵌", batchId: "batch-4", orderNo: "ORD-99102", defectRemark: "" },
+  { id: "g15", code: "ST-2218", type: "尖晶石", shape: "心形", carat: 1.80, sizeL: 7.5, sizeW: 7.5, setting: "吊坠位", clarity: "VS2", color: "绝地武士", cut: "明亮式", status: "已确认", batchId: "batch-4", orderNo: "ORD-99102", defectRemark: "" },
+  { id: "g16", code: "ST-2225", type: "钻石", shape: "圆形", carat: 0.03, sizeL: 1.5, sizeW: 1.5, setting: "围石B组", clarity: "VVS1", color: "D", cut: "理想切工", status: "待镶嵌", batchId: "batch-4", orderNo: "ORD-99102", defectRemark: "" },
+  { id: "g17", code: "ST-2231", type: "蓝宝石", shape: "梨形", carat: 1.50, sizeL: 9.0, sizeW: 6.0, setting: "主石位", clarity: "IF", color: "帕帕拉恰", cut: "明亮式", status: "需客户确认", batchId: "batch-5", orderNo: "ORD-77305", defectRemark: "颜色稀有，需客户确认最终款式" },
+  { id: "g18", code: "ST-2248", type: "钻石", shape: "椭圆", carat: 0.15, sizeL: 4.0, sizeW: 3.0, setting: "围石C组", clarity: "VS1", color: "F", cut: "优良", status: "已确认", batchId: "batch-5", orderNo: "ORD-77305", defectRemark: "" },
 ];
 
 const initialBatches: Batch[] = [
@@ -138,6 +161,10 @@ function App() {
   const [selectedOrderNo, setSelectedOrderNo] = useState<string | null>(null);
   const [gemDetailGemId, setGemDetailGemId] = useState<string | null>(null);
   const [editingStatus, setEditingStatus] = useState<SortingStatus | null>(null);
+  const [showGemDetailDrawer, setShowGemDetailDrawer] = useState(false);
+  const [isEditingMode, setIsEditingMode] = useState(false);
+  const [gemEditForm, setGemEditForm] = useState<GemstoneEditForm | null>(null);
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
 
   const [batches] = useState<Batch[]>(initialBatches);
   const [gemstones, setGemstones] = useState<Gemstone[]>(initialGemstones);
@@ -170,6 +197,131 @@ function App() {
 
   const updateGemStatus = (gemId: string, newStatus: SortingStatus) => {
     setGemstones((prev) => prev.map((g) => (g.id === gemId ? { ...g, status: newStatus } : g)));
+  };
+
+  const updateGemstone = (gemId: string, updated: Partial<Gemstone>) => {
+    setGemstones((prev) => prev.map((g) => (g.id === gemId ? { ...g, ...updated } : g)));
+  };
+
+  const validateGemForm = (form: GemstoneEditForm): FormErrors => {
+    const errors: FormErrors = {};
+
+    if (!form.code.trim()) {
+      errors.code = "宝石编号不能为空";
+    }
+
+    const caratNum = parseFloat(form.carat);
+    if (isNaN(caratNum) || caratNum <= 0) {
+      errors.carat = "请输入有效的克拉重量（大于0的数字）";
+    } else if (caratNum > 50) {
+      errors.carat = "克拉重量异常（不能超过50ct）";
+    }
+
+    const sizeLNum = parseFloat(form.sizeL);
+    const sizeWNum = parseFloat(form.sizeW);
+
+    if (isNaN(sizeLNum) || sizeLNum <= 0) {
+      errors.sizeL = "请输入有效的尺寸长度（大于0的数字）";
+    } else if (sizeLNum > 30) {
+      errors.sizeL = "尺寸长度异常（不能超过30mm）";
+    }
+
+    if (isNaN(sizeWNum) || sizeWNum <= 0) {
+      errors.sizeW = "请输入有效的尺寸宽度（大于0的数字）";
+    } else if (sizeWNum > 30) {
+      errors.sizeW = "尺寸宽度异常（不能超过30mm）";
+    }
+
+    if (!errors.sizeL && !errors.sizeW) {
+      const ratio = Math.max(sizeLNum, sizeWNum) / Math.min(sizeLNum, sizeWNum);
+      if (ratio > 5) {
+        errors.sizeL = "尺寸比例异常（长宽比不能超过5:1）";
+      }
+    }
+
+    return errors;
+  };
+
+  const openGemDetailDrawer = (gemId: string) => {
+    const gem = gemstones.find((g) => g.id === gemId);
+    if (!gem) return;
+
+    setGemDetailGemId(gemId);
+    setGemEditForm({
+      code: gem.code,
+      type: gem.type,
+      shape: gem.shape,
+      carat: gem.carat.toString(),
+      sizeL: gem.sizeL.toString(),
+      sizeW: gem.sizeW.toString(),
+      setting: gem.setting,
+      clarity: gem.clarity,
+      color: gem.color,
+      cut: gem.cut,
+      status: gem.status,
+      defectRemark: gem.defectRemark || "",
+    });
+    setFormErrors({});
+    setIsEditingMode(false);
+    setShowGemDetailDrawer(true);
+  };
+
+  const handleEditFormChange = (field: keyof GemstoneEditForm, value: string) => {
+    if (!gemEditForm) return;
+    setGemEditForm((prev) => (prev ? { ...prev, [field]: value } : null));
+
+    if (formErrors[field as keyof FormErrors]) {
+      setFormErrors((prev) => {
+        const next = { ...prev };
+        delete next[field as keyof FormErrors];
+        return next;
+      });
+    }
+  };
+
+  const handleSaveGem = () => {
+    if (!gemEditForm || !gemDetailGemId) return;
+
+    const errors = validateGemForm(gemEditForm);
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      const firstError = Object.values(errors)[0];
+      if (firstError) {
+        alert(firstError);
+      }
+      return;
+    }
+
+    const caratNum = parseFloat(gemEditForm.carat);
+    const sizeLNum = parseFloat(gemEditForm.sizeL);
+    const sizeWNum = parseFloat(gemEditForm.sizeW);
+
+    updateGemstone(gemDetailGemId, {
+      code: gemEditForm.code.trim(),
+      type: gemEditForm.type,
+      shape: gemEditForm.shape,
+      carat: caratNum,
+      sizeL: sizeLNum,
+      sizeW: sizeWNum,
+      setting: gemEditForm.setting,
+      clarity: gemEditForm.clarity,
+      color: gemEditForm.color,
+      cut: gemEditForm.cut,
+      status: gemEditForm.status,
+      defectRemark: gemEditForm.defectRemark,
+    });
+
+    setIsEditingMode(false);
+    setFormErrors({});
+    alert("宝石信息已保存");
+  };
+
+  const closeGemDetailDrawer = () => {
+    setShowGemDetailDrawer(false);
+    setGemDetailGemId(null);
+    setGemEditForm(null);
+    setIsEditingMode(false);
+    setFormErrors({});
   };
 
   const toggleDefectType = (type: string) => {
@@ -406,7 +558,7 @@ function App() {
   );
 
   const renderGemCard = (g: Gemstone, index: number) => (
-    <article key={g.id} className="gem-card clickable" onClick={() => setGemDetailGemId(g.id)}>
+    <article key={g.id} className="gem-card clickable" onClick={() => openGemDetailDrawer(g.id)}>
       <div className="gem-index">
         <b>{String(index + 1).padStart(2, "0")}</b>
       </div>
@@ -1219,119 +1371,208 @@ function App() {
     );
   };
 
-  const renderGemDetailModal = () => {
-    if (!gemDetail) return null;
-    const currentStatus = editingStatus ?? gemDetail.status;
+  const renderGemDetailDrawer = () => {
+    if (!showGemDetailDrawer || !gemEditForm || !gemDetail) return null;
 
-    const handleSaveStatus = () => {
-      if (editingStatus && editingStatus !== gemDetail.status) {
-        updateGemStatus(gemDetail.id, editingStatus);
+    const handleCancelEdit = () => {
+      setIsEditingMode(false);
+      setFormErrors({});
+      const gem = gemstones.find((g) => g.id === gemDetailGemId);
+      if (gem) {
+        setGemEditForm({
+          code: gem.code,
+          type: gem.type,
+          shape: gem.shape,
+          carat: gem.carat.toString(),
+          sizeL: gem.sizeL.toString(),
+          sizeW: gem.sizeW.toString(),
+          setting: gem.setting,
+          clarity: gem.clarity,
+          color: gem.color,
+          cut: gem.cut,
+          status: gem.status,
+          defectRemark: gem.defectRemark || "",
+        });
       }
-      setEditingStatus(null);
     };
 
-    const handleClose = () => {
-      setGemDetailGemId(null);
-      setEditingStatus(null);
+    const renderField = (
+      label: string,
+      field: keyof GemstoneEditForm,
+      value: string,
+      editable: boolean = true,
+      type: string = "text",
+      options?: string[]
+    ) => {
+      const error = formErrors[field as keyof FormErrors];
+
+      if (!isEditingMode || !editable) {
+        return (
+          <div className="drawer-field">
+            <label className="drawer-field-label">{label}</label>
+            <div className="drawer-field-value">{value || "-"}</div>
+          </div>
+        );
+      }
+
+      if (options) {
+        return (
+          <div className="drawer-field">
+            <label className="drawer-field-label">{label}</label>
+            <select
+              className={`drawer-field-input ${error ? "error" : ""}`}
+              value={value}
+              onChange={(e) => handleEditFormChange(field, e.target.value)}
+            >
+              {options.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+            {error && <div className="field-error">{error}</div>}
+          </div>
+        );
+      }
+
+      if (field === "defectRemark") {
+        return (
+          <div className="drawer-field full-width">
+            <label className="drawer-field-label">{label}</label>
+            <textarea
+              className={`drawer-field-input ${error ? "error" : ""}`}
+              value={value}
+              onChange={(e) => handleEditFormChange(field, e.target.value)}
+              placeholder="填写缺陷备注信息"
+              rows={3}
+            />
+            {error && <div className="field-error">{error}</div>}
+          </div>
+        );
+      }
+
+      return (
+        <div className="drawer-field">
+          <label className="drawer-field-label">{label}</label>
+          <input
+            type={type}
+            className={`drawer-field-input ${error ? "error" : ""}`}
+            value={value}
+            onChange={(e) => handleEditFormChange(field, e.target.value)}
+            placeholder={`请输入${label}`}
+            step={type === "number" ? "0.01" : undefined}
+          />
+          {error && <div className="field-error">{error}</div>}
+        </div>
+      );
     };
+
+    const settingOptions = ["主石位", "围石A组", "围石B组", "围石C组", "副石位", "吊坠位", "备用石位"];
+    const clarityOptions = ["IF", "VVS1", "VVS2", "VS1", "VS2", "SI1", "SI2", "SI3", "I1", "I2", "I3"];
+    const typeOptions = ["钻石", "红宝石", "蓝宝石", "祖母绿", "碧玺", "坦桑石", "尖晶石", "翡翠", "其他"];
+    const colorOptions = ["D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "皇家蓝", "矢车菊蓝", "鸽血红", "玫红", "翠绿", "绿", "帕拉伊巴", "蓝紫", "绝地武士", "帕帕拉恰", "其他"];
+    const cutOptions = ["理想切工", "极优良", "优良", "良好", "一般", "明亮式", "阶梯式", "混合式", "其他"];
 
     return (
-      <div className="modal-overlay" onClick={handleClose}>
-        <div className="modal-content gem-detail-modal" onClick={(e) => e.stopPropagation()}>
-          <div className="modal-header">
+      <>
+        <div className="drawer-overlay" onClick={closeGemDetailDrawer} />
+        <div className="gem-detail-drawer">
+          <div className="drawer-header">
             <div>
               <p>宝石详情</p>
-              <h2>{gemDetail.code} · {gemDetail.type}</h2>
+              <h2>
+                {gemEditForm.code} · {gemEditForm.type}
+                {renderStatusTag(gemEditForm.status)}
+              </h2>
             </div>
-            <button className="modal-close" onClick={handleClose}>✕</button>
+            <div className="drawer-header-actions">
+              {!isEditingMode && (
+                <button className="primary edit-btn" onClick={() => setIsEditingMode(true)}>
+                  ✎ 编辑
+                </button>
+              )}
+              <button className="drawer-close" onClick={closeGemDetailDrawer}>✕</button>
+            </div>
           </div>
-          <div className="modal-body">
-            <div className="gem-detail-body">
-              <div className="gem-detail-left">
-                <div className="gem-detail-icon">💎</div>
-                <div className="gem-detail-quick-stats">
-                  <div className="quick-stat">
-                    <small>克拉重量</small>
-                    <strong>{gemDetail.carat} ct</strong>
-                  </div>
-                  <div className="quick-stat">
-                    <small>尺寸</small>
-                    <strong>{gemDetail.sizeL} × {gemDetail.sizeW} mm</strong>
-                  </div>
-                  <div className="quick-stat">
-                    <small>形状</small>
-                    <strong>{gemDetail.shape}</strong>
-                  </div>
-                </div>
-              </div>
 
-              <div className="gem-detail-right">
-                <div className="gem-detail-info-grid">
-                  <div className="detail-info-row">
-                    <span>宝石编号</span>
-                    <strong>{gemDetail.code}</strong>
-                  </div>
-                  <div className="detail-info-row">
-                    <span>宝石种类</span>
-                    <strong>{gemDetail.type}</strong>
-                  </div>
-                  <div className="detail-info-row">
-                    <span>颜色</span>
-                    <strong>{gemDetail.color}</strong>
-                  </div>
-                  <div className="detail-info-row">
-                    <span>净度</span>
-                    <strong>{gemDetail.clarity}</strong>
-                  </div>
-                  <div className="detail-info-row">
-                    <span>切工</span>
-                    <strong>{gemDetail.cut}</strong>
-                  </div>
-                  <div className="detail-info-row">
-                    <span>镶嵌位置</span>
-                    <strong>{gemDetail.setting}</strong>
-                  </div>
-                  <div className="detail-info-row">
-                    <span>所属订单</span>
-                    <strong>{gemDetail.orderNo}</strong>
-                  </div>
-                  <div className="detail-info-row">
-                    <span>批次ID</span>
-                    <strong>{gemDetail.batchId}</strong>
-                  </div>
+          <div className="drawer-body">
+            <div className="drawer-icon-section">
+              <div className="drawer-gem-icon">💎</div>
+              <div className="drawer-quick-stats">
+                <div className="quick-stat">
+                  <small>克拉重量</small>
+                  <strong>{gemEditForm.carat} ct</strong>
                 </div>
-
-                <div className="gem-detail-status-section">
-                  <h4>分拣状态</h4>
-                  <div className="status-selector">
-                    {STATUS_OPTIONS.map((s) => (
-                      <button
-                        key={s}
-                        className={`status-option ${currentStatus === s ? "active" : ""} ${getStatusClass(s)}`}
-                        onClick={() => setEditingStatus(s)}
-                      >
-                        {renderStatusTag(s)}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="gem-detail-actions">
-                    <button onClick={handleClose}>取消</button>
-                    <button
-                      className="primary"
-                      onClick={() => {
-                        handleSaveStatus();
-                        handleClose();
-                      }}
-                    >
-                      保存状态
-                    </button>
-                  </div>
+                <div className="quick-stat">
+                  <small>尺寸</small>
+                  <strong>{gemEditForm.sizeL} × {gemEditForm.sizeW} mm</strong>
+                </div>
+                <div className="quick-stat">
+                  <small>形状</small>
+                  <strong>{gemEditForm.shape}</strong>
                 </div>
               </div>
             </div>
+
+            <div className="drawer-section">
+              <h3 className="drawer-section-title">核心信息</h3>
+              <div className="drawer-field-grid">
+                {renderField("宝石编号 *", "code", gemEditForm.code, true, "text")}
+                {renderField("宝石种类", "type", gemEditForm.type, true, "text", typeOptions)}
+                {renderField("形状", "shape", gemEditForm.shape, true, "text", SHAPE_OPTIONS)}
+                {renderField("克拉重量 *", "carat", gemEditForm.carat, true, "number")}
+                {renderField("尺寸长度 (mm) *", "sizeL", gemEditForm.sizeL, true, "number")}
+                {renderField("尺寸宽度 (mm) *", "sizeW", gemEditForm.sizeW, true, "number")}
+              </div>
+            </div>
+
+            <div className="drawer-section">
+              <h3 className="drawer-section-title">品质参数</h3>
+              <div className="drawer-field-grid">
+                {renderField("净度", "clarity", gemEditForm.clarity, true, "text", clarityOptions)}
+                {renderField("颜色", "color", gemEditForm.color, true, "text", colorOptions)}
+                {renderField("切工", "cut", gemEditForm.cut, true, "text", cutOptions)}
+              </div>
+            </div>
+
+            <div className="drawer-section">
+              <h3 className="drawer-section-title">镶嵌信息</h3>
+              <div className="drawer-field-grid">
+                {renderField("镶嵌位置", "setting", gemEditForm.setting, true, "text", settingOptions)}
+                {renderField("分拣状态", "status", gemEditForm.status, true, "text", STATUS_OPTIONS)}
+              </div>
+            </div>
+
+            <div className="drawer-section">
+              <h3 className="drawer-section-title">系统信息</h3>
+              <div className="drawer-field-grid">
+                <div className="drawer-field">
+                  <label className="drawer-field-label">所属订单</label>
+                  <div className="drawer-field-value">{gemDetail.orderNo}</div>
+                </div>
+                <div className="drawer-field">
+                  <label className="drawer-field-label">批次ID</label>
+                  <div className="drawer-field-value">{gemDetail.batchId}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="drawer-section">
+              <h3 className="drawer-section-title">缺陷备注</h3>
+              <div className="drawer-field-grid">
+                {renderField("备注说明", "defectRemark", gemEditForm.defectRemark, true, "textarea")}
+              </div>
+            </div>
           </div>
+
+          {isEditingMode && (
+            <div className="drawer-footer">
+              <button onClick={handleCancelEdit}>取消</button>
+              <button className="primary" onClick={handleSaveGem}>保存修改</button>
+            </div>
+          )}
         </div>
-      </div>
+      </>
     );
   };
 
@@ -1364,7 +1605,7 @@ function App() {
       {currentView === "workbench" && renderWorkbench()}
       {currentView === "orderList" && renderOrderList()}
       {currentView === "orderDetail" && renderOrderDetail()}
-      {renderGemDetailModal()}
+      {renderGemDetailDrawer()}
     </main>
   );
 }
