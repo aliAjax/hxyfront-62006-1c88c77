@@ -209,6 +209,8 @@ function App() {
   const [kanbanDragOverStatus, setKanbanDragOverStatus] = useState<SortingStatus | null>(null);
   const [showKanbanDefectPanel, setShowKanbanDefectPanel] = useState(false);
   const [kanbanDefectGemId, setKanbanDefectGemId] = useState<string>("");
+  const [showExportSummary, setShowExportSummary] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   const updateGemstone = (gemId: string, updated: Partial<Gemstone>) => {
     setGemstones((prev) => prev.map((g) => (g.id === gemId ? { ...g, ...updated } : g)));
@@ -462,6 +464,107 @@ function App() {
   };
 
   const hasActiveFilters = selectedShapes.length > 0 || sizeMin !== "" || sizeMax !== "" || caratMin !== "" || caratMax !== "";
+
+  const generateExportSummaryText = () => {
+    const gems = hasActiveFilters ? filteredGemstones : gemstones;
+    const sortingCount = gems.filter((g) => g.status === "待分拣").length;
+    const pendingCount = gems.filter((g) => g.status === "待镶嵌").length;
+    const confirmedCount = gems.filter((g) => g.status === "已完成").length;
+    const defectCount = gems.filter((g) => g.status === "需客户确认").length;
+    const totalCarat = gems.reduce((sum, g) => sum + g.carat, 0);
+    const defectRemarkCount = gems.filter((g) => g.defectRemark && g.defectRemark.trim() !== "").length;
+
+    const relatedBatchIds = new Set(gems.map((g) => g.batchId));
+    const relatedBatches = batches.filter((b) => relatedBatchIds.has(b.id));
+    const relatedOrderNos = [...new Set(relatedBatches.map((b) => b.orderNo))];
+
+    const lines: string[] = [];
+    lines.push("═══════════════════════════════════════");
+    lines.push("  珠宝镶嵌宝石分拣摘要报告");
+    lines.push(`  生成时间：${new Date().toLocaleString("zh-CN")}`);
+    lines.push("═══════════════════════════════════════");
+    lines.push("");
+
+    if (hasActiveFilters) {
+      lines.push("【筛选条件】");
+      if (selectedShapes.length > 0) lines.push(`  形状：${selectedShapes.join("、")}`);
+      if (sizeMin !== "" || sizeMax !== "") lines.push(`  尺寸：${sizeMin || "0"} ~ ${sizeMax || "∞"} mm`);
+      if (caratMin !== "" || caratMax !== "") lines.push(`  克拉：${caratMin || "0"} ~ ${caratMax || "∞"} ct`);
+      lines.push("");
+    }
+
+    lines.push("【批次信息】");
+    if (relatedBatches.length === 0) {
+      lines.push("  无相关批次");
+    } else {
+      relatedBatches.forEach((b) => {
+        lines.push(`  ${b.batchNo}`);
+        lines.push(`    订单号：${b.orderNo}`);
+        lines.push(`    客户：${b.customerName}`);
+        lines.push(`    预计交付：${b.expectedDate || "-"}`);
+        if (b.remark) lines.push(`    备注：${b.remark}`);
+      });
+    }
+    lines.push("");
+
+    lines.push("【订单号】");
+    if (relatedOrderNos.length === 0) {
+      lines.push("  无");
+    } else {
+      lines.push(`  ${relatedOrderNos.join("、")}`);
+    }
+    lines.push("");
+
+    lines.push("【状态统计】");
+    lines.push(`  待分拣：${sortingCount} 颗`);
+    lines.push(`  待镶嵌：${pendingCount} 颗`);
+    lines.push(`  需客户确认：${defectCount} 颗`);
+    lines.push(`  已完成：${confirmedCount} 颗`);
+    lines.push(`  合计：${gems.length} 颗`);
+    lines.push("");
+
+    lines.push("【缺陷备注数量】");
+    lines.push(`  ${defectRemarkCount} 颗宝石有缺陷备注`);
+    lines.push("");
+
+    lines.push("【总克拉】");
+    lines.push(`  ${totalCarat.toFixed(2)} ct`);
+    lines.push("");
+
+    lines.push("【宝石明细】");
+    if (gems.length === 0) {
+      lines.push("  无匹配宝石");
+    } else {
+      gems.forEach((g, i) => {
+        lines.push(`  ${String(i + 1).padStart(2, "0")}. ${g.code} | ${g.type} | ${g.shape} | ${g.carat}ct | ${g.sizeL}×${g.sizeW}mm | ${g.color} | ${g.clarity} | ${g.cut} | ${g.setting} | ${g.status}`);
+        if (g.defectRemark && g.defectRemark.trim()) {
+          lines.push(`      备注：${g.defectRemark}`);
+        }
+      });
+    }
+
+    lines.push("");
+    lines.push("═══════════════════════════════════════");
+
+    return lines.join("\n");
+  };
+
+  const handleCopySummary = () => {
+    const text = generateExportSummaryText();
+    navigator.clipboard.writeText(text).then(() => {
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    }).catch(() => {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    });
+  };
 
   const filteredGemstones = useMemo(() => {
     return gemstones.filter((g) => {
@@ -1198,7 +1301,7 @@ function App() {
             <p>历史记录</p>
             <h2>近期工作台</h2>
           </div>
-          <button>导出摘要</button>
+          <button className="primary" onClick={() => setShowExportSummary(true)}>导出摘要</button>
         </div>
         <div className="records">
           {defectRemarks.length > 0 && (
@@ -1746,6 +1849,55 @@ function App() {
     </>
   );
 
+  const renderExportSummaryModal = () => {
+    if (!showExportSummary) return null;
+    const summaryText = generateExportSummaryText();
+    const gems = hasActiveFilters ? filteredGemstones : gemstones;
+
+    return (
+      <div className="modal-overlay" onClick={() => setShowExportSummary(false)}>
+        <div className="modal-content export-summary-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <div>
+              <p>导出预览</p>
+              <h2>分拣摘要报告</h2>
+            </div>
+            <button className="modal-close" onClick={() => setShowExportSummary(false)}>✕</button>
+          </div>
+          <div className="modal-body">
+            <div className="export-summary-meta">
+              <div className="export-meta-item">
+                <small>筛选条件</small>
+                <strong>{hasActiveFilters ? "已启用" : "全部数据"}</strong>
+              </div>
+              <div className="export-meta-item">
+                <small>宝石数量</small>
+                <strong>{gems.length} 颗</strong>
+              </div>
+              <div className="export-meta-item">
+                <small>总克拉</small>
+                <strong>{gems.reduce((s, g) => s + g.carat, 0).toFixed(2)} ct</strong>
+              </div>
+              <div className="export-meta-item">
+                <small>缺陷备注</small>
+                <strong>{gems.filter((g) => g.defectRemark && g.defectRemark.trim()).length} 条</strong>
+              </div>
+            </div>
+            <div className="export-summary-preview">
+              <pre>{summaryText}</pre>
+            </div>
+          </div>
+          <div className="export-summary-footer">
+            <button onClick={() => setShowExportSummary(false)}>关闭</button>
+            <button className="primary" onClick={handleCopySummary}>
+              {copySuccess ? "✓ 已复制" : "📋 复制摘要"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderGemDetailDrawer = () => {
     if (!showGemDetailDrawer || !gemEditForm || !gemDetail) return null;
 
@@ -1987,6 +2139,7 @@ function App() {
       {currentView === "kanban" && renderKanban()}
       {currentView === "orderList" && renderOrderList()}
       {currentView === "orderDetail" && renderOrderDetail()}
+      {renderExportSummaryModal()}
       {renderGemDetailDrawer()}
     </main>
   );
