@@ -160,7 +160,6 @@ function App() {
   const [currentView, setCurrentView] = useState<ViewType>("workbench");
   const [selectedOrderNo, setSelectedOrderNo] = useState<string | null>(null);
   const [gemDetailGemId, setGemDetailGemId] = useState<string | null>(null);
-  const [editingStatus, setEditingStatus] = useState<SortingStatus | null>(null);
   const [showGemDetailDrawer, setShowGemDetailDrawer] = useState(false);
   const [isEditingMode, setIsEditingMode] = useState(false);
   const [gemEditForm, setGemEditForm] = useState<GemstoneEditForm | null>(null);
@@ -194,10 +193,6 @@ function App() {
   const [sizeMax, setSizeMax] = useState("");
   const [caratMin, setCaratMin] = useState("");
   const [caratMax, setCaratMax] = useState("");
-
-  const updateGemStatus = (gemId: string, newStatus: SortingStatus) => {
-    setGemstones((prev) => prev.map((g) => (g.id === gemId ? { ...g, status: newStatus } : g)));
-  };
 
   const updateGemstone = (gemId: string, updated: Partial<Gemstone>) => {
     setGemstones((prev) => prev.map((g) => (g.id === gemId ? { ...g, ...updated } : g)));
