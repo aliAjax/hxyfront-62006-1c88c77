@@ -1,6 +1,23 @@
 import { useState, useMemo } from "react";
 import "./styles.css";
 
+type SettingPositionType = "主石位" | "围石A组" | "围石B组" | "备用石位";
+
+interface SettingPosition {
+  key: SettingPositionType;
+  label: string;
+  description: string;
+  color: string;
+  maxSlots: number;
+}
+
+const SETTING_POSITIONS: SettingPosition[] = [
+  { key: "主石位", label: "主石位", description: "戒指中心主石", color: "var(--primary)", maxSlots: 1 },
+  { key: "围石A组", label: "围石A组", description: "内圈围石", color: "var(--secondary)", maxSlots: 8 },
+  { key: "围石B组", label: "围石B组", description: "外圈围石", color: "var(--accent)", maxSlots: 12 },
+  { key: "备用石位", label: "备用石位", description: "备用宝石槽", color: "#f59e0b", maxSlots: 4 },
+];
+
 interface Batch {
   id: string;
   batchNo: string;
@@ -144,6 +161,17 @@ function App() {
   const [formData, setFormData] = useState<BatchFormData>(initialFormData);
   const [showBatchForm, setShowBatchForm] = useState(false);
 
+  const [gemAssignments, setGemAssignments] = useState<Record<SettingPositionType, string[]>>({
+    "主石位": ["g4"],
+    "围石A组": ["g2", "g9", "g14"],
+    "围石B组": ["g5", "g11", "g16"],
+    "备用石位": [],
+  });
+  const [selectedPosition, setSelectedPosition] = useState<SettingPositionType | null>(null);
+  const [draggedGemId, setDraggedGemId] = useState<string | null>(null);
+  const [dragOverPosition, setDragOverPosition] = useState<SettingPositionType | null>(null);
+  const [showAssignPanel, setShowAssignPanel] = useState(false);
+
   const [defectRemarks, setDefectRemarks] = useState<DefectRemark[]>([]);
   const [selectedGemId, setSelectedGemId] = useState<string>("");
   const [selectedDefectTypes, setSelectedDefectTypes] = useState<string[]>([]);
@@ -190,6 +218,102 @@ function App() {
     setSelectedDefectTypes([]);
     setDefectRemarkText("");
     setNeedConfirm(false);
+  };
+
+  const assignedGemIds = useMemo(() => {
+    const ids = new Set<string>();
+    Object.values(gemAssignments).forEach((gemIds) => {
+      gemIds.forEach((id) => ids.add(id));
+    });
+    return ids;
+  }, [gemAssignments]);
+
+  const unassignedGemstones = useMemo(() => {
+    return gemstones.filter((g) => !assignedGemIds.has(g.id));
+  }, [assignedGemIds]);
+
+  const getGemsForPosition = (position: SettingPositionType): Gemstone[] => {
+    const ids = gemAssignments[position] || [];
+    return ids.map((id) => gemstones.find((g) => g.id === id)!).filter(Boolean);
+  };
+
+  const getPositionForGem = (gemId: string): SettingPositionType | null => {
+    for (const [pos, ids] of Object.entries(gemAssignments)) {
+      if (ids.includes(gemId)) {
+        return pos as SettingPositionType;
+      }
+    }
+    return null;
+  };
+
+  const assignGemToPosition = (gemId: string, position: SettingPositionType) => {
+    const posConfig = SETTING_POSITIONS.find((p) => p.key === position);
+    if (!posConfig) return;
+
+    const currentGems = gemAssignments[position] || [];
+    if (currentGems.length >= posConfig.maxSlots) {
+      alert(`该位置最多可放置 ${posConfig.maxSlots} 颗宝石`);
+      return;
+    }
+
+    if (currentGems.includes(gemId)) return;
+
+    setGemAssignments((prev) => {
+      const next = { ...prev };
+      for (const key of Object.keys(next) as SettingPositionType[]) {
+        next[key] = next[key].filter((id) => id !== gemId);
+      }
+      next[position] = [...next[position], gemId];
+      return next;
+    });
+  };
+
+  const removeGemFromPosition = (gemId: string, position: SettingPositionType) => {
+    setGemAssignments((prev) => ({
+      ...prev,
+      [position]: prev[position].filter((id) => id !== gemId),
+    }));
+  };
+
+  const handleDragStart = (e: React.DragEvent, gemId: string) => {
+    setDraggedGemId(gemId);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", gemId);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedGemId(null);
+    setDragOverPosition(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent, position: SettingPositionType) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverPosition(position);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverPosition(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, position: SettingPositionType) => {
+    e.preventDefault();
+    const gemId = e.dataTransfer.getData("text/plain") || draggedGemId;
+    if (gemId) {
+      assignGemToPosition(gemId, position);
+    }
+    setDraggedGemId(null);
+    setDragOverPosition(null);
+  };
+
+  const handlePositionClick = (position: SettingPositionType) => {
+    setSelectedPosition(position);
+    setShowAssignPanel(true);
+  };
+
+  const closeAssignPanel = () => {
+    setSelectedPosition(null);
+    setShowAssignPanel(false);
   };
 
   const [selectedShapes, setSelectedShapes] = useState<string[]>([]);
@@ -611,6 +735,226 @@ function App() {
           )}
         </section>
       </section>
+
+      <section className="setting-diagram-section">
+        <section className="panel setting-panel">
+          <div className="heading">
+            <div>
+              <p>位置示意</p>
+              <h2>戒指镶嵌位置示意图</h2>
+            </div>
+            <span className="result-count">
+              已分配 {assignedGemIds.size} / {gemstones.length} 颗宝石
+            </span>
+          </div>
+
+          <div className="setting-diagram-wrapper">
+            <div className="ring-diagram">
+              <div className="ring-outer-ring">
+                <div
+                  className={`position-area position-outer ${dragOverPosition === "围石B组" ? "drag-over" : ""} ${selectedPosition === "围石B组" ? "selected" : ""}`}
+                  onClick={() => handlePositionClick("围石B组")}
+                  onDragOver={(e) => handleDragOver(e, "围石B组")}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, "围石B组")}
+                >
+                  <span className="position-label">围石B组</span>
+                  <span className="position-count">
+                    {getGemsForPosition("围石B组").length} / 12
+                  </span>
+                </div>
+              </div>
+
+              <div className="ring-middle-ring">
+                <div
+                  className={`position-area position-middle ${dragOverPosition === "围石A组" ? "drag-over" : ""} ${selectedPosition === "围石A组" ? "selected" : ""}`}
+                  onClick={() => handlePositionClick("围石A组")}
+                  onDragOver={(e) => handleDragOver(e, "围石A组")}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, "围石A组")}
+                >
+                  <span className="position-label">围石A组</span>
+                  <span className="position-count">
+                    {getGemsForPosition("围石A组").length} / 8
+                  </span>
+                </div>
+              </div>
+
+              <div className="ring-center">
+                <div
+                  className={`position-area position-center ${dragOverPosition === "主石位" ? "drag-over" : ""} ${selectedPosition === "主石位" ? "selected" : ""}`}
+                  onClick={() => handlePositionClick("主石位")}
+                  onDragOver={(e) => handleDragOver(e, "主石位")}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, "主石位")}
+                >
+                  <span className="position-label">主石位</span>
+                  <span className="position-count">
+                    {getGemsForPosition("主石位").length} / 1
+                  </span>
+                </div>
+              </div>
+
+              <div className="ring-backup">
+                <div
+                  className={`position-area position-backup ${dragOverPosition === "备用石位" ? "drag-over" : ""} ${selectedPosition === "备用石位" ? "selected" : ""}`}
+                  onClick={() => handlePositionClick("备用石位")}
+                  onDragOver={(e) => handleDragOver(e, "备用石位")}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, "备用石位")}
+                >
+                  <span className="position-label">备用石位</span>
+                  <span className="position-count">
+                    {getGemsForPosition("备用石位").length} / 4
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="setting-legend">
+              <h3>位置说明</h3>
+              {SETTING_POSITIONS.map((pos) => (
+                <div key={pos.key} className="legend-item">
+                  <span className="legend-dot" style={{ background: pos.color }}></span>
+                  <div className="legend-info">
+                    <strong>{pos.label}</strong>
+                    <small>{pos.description}</small>
+                  </div>
+                  <span className="legend-count">
+                    {getGemsForPosition(pos.key).length}/{pos.maxSlots}
+                  </span>
+                </div>
+              ))}
+              <p className="setting-tip">
+                💡 点击位置查看宝石清单，或从右侧拖拽未分配宝石到对应位置
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <aside className="panel unassigned-panel">
+          <div className="heading">
+            <div>
+              <p>待分配</p>
+              <h2>未分配宝石</h2>
+            </div>
+            <span className="result-count">{unassignedGemstones.length} 颗</span>
+          </div>
+
+          {unassignedGemstones.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">✨</div>
+              <p>所有宝石已分配完毕</p>
+            </div>
+          ) : (
+            <div className="unassigned-list">
+              {unassignedGemstones.map((g) => (
+                <div
+                  key={g.id}
+                  className={`unassigned-gem ${draggedGemId === g.id ? "dragging" : ""}`}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, g.id)}
+                  onDragEnd={handleDragEnd}
+                >
+                  <div className="unassigned-gem-icon">💎</div>
+                  <div className="unassigned-gem-info">
+                    <h4>{g.code}</h4>
+                    <p>{g.type} · {g.shape} · {g.carat}ct</p>
+                  </div>
+                  <button
+                    className="assign-quick-btn"
+                    onClick={() => {
+                      if (selectedPosition) {
+                        assignGemToPosition(g.id, selectedPosition);
+                      } else {
+                        alert("请先在左侧点击选择一个目标位置");
+                      }
+                    }}
+                  >
+                    分配
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </aside>
+      </section>
+
+      {showAssignPanel && selectedPosition && (
+        <div className="modal-overlay" onClick={closeAssignPanel}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <p>位置详情</p>
+                <h2>{selectedPosition} - 宝石清单</h2>
+              </div>
+              <button className="modal-close" onClick={closeAssignPanel}>
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="assigned-gems-section">
+                <h3>
+                  已分配宝石 ({getGemsForPosition(selectedPosition).length}/
+                  {SETTING_POSITIONS.find((p) => p.key === selectedPosition)?.maxSlots})
+                </h3>
+                {getGemsForPosition(selectedPosition).length === 0 ? (
+                  <div className="empty-state small">
+                    <p>暂无分配的宝石</p>
+                  </div>
+                ) : (
+                  <div className="assigned-gems-list">
+                    {getGemsForPosition(selectedPosition).map((g) => (
+                      <div key={g.id} className="assigned-gem-item">
+                        <div className="assigned-gem-icon">💎</div>
+                        <div className="assigned-gem-info">
+                          <h4>{g.code}</h4>
+                          <p>{g.type} · {g.shape} · {g.carat}ct · {g.sizeL}×{g.sizeW}mm</p>
+                        </div>
+                        <button
+                          className="remove-btn"
+                          onClick={() => removeGemFromPosition(g.id, selectedPosition)}
+                        >
+                          移除
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="unassigned-gems-section">
+                <h3>可分配宝石 ({unassignedGemstones.length})</h3>
+                <p className="section-tip">点击"分配"按钮将宝石添加到该位置</p>
+                {unassignedGemstones.length === 0 ? (
+                  <div className="empty-state small">
+                    <p>没有可分配的宝石</p>
+                  </div>
+                ) : (
+                  <div className="unassigned-gems-select-list">
+                    {unassignedGemstones.map((g) => (
+                      <div key={g.id} className="unassigned-gem-select-item">
+                        <div className="unassigned-gem-icon small">💎</div>
+                        <div className="unassigned-gem-info">
+                          <h4>{g.code}</h4>
+                          <p>{g.type} · {g.shape} · {g.carat}ct</p>
+                        </div>
+                        <button
+                          className="primary assign-btn"
+                          onClick={() => assignGemToPosition(g.id, selectedPosition)}
+                        >
+                          + 分配
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <section className="defect-section">
         <section className="panel defect-panel">
