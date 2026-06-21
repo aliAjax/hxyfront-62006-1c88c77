@@ -3,7 +3,7 @@ import "./styles.css";
 
 type SettingPositionType = "主石位" | "围石A组" | "围石B组" | "备用石位";
 type ViewType = "workbench" | "orderList" | "orderDetail" | "kanban";
-type SortingStatus = "待分拣" | "待镶嵌" | "需客户确认" | "已完成" | "已确认";
+type SortingStatus = "待分拣" | "待镶嵌" | "需客户确认" | "已完成";
 
 interface SettingPosition {
   key: SettingPositionType;
@@ -27,8 +27,9 @@ interface Batch {
   customerName: string;
   expectedDate: string;
   remark: string;
+  sortingCount: number;
   pendingCount: number;
-  confirmedCount: number;
+  completedCount: number;
   defectCount: number;
   createdAt: string;
 }
@@ -117,7 +118,7 @@ const DEFECT_TYPE_OPTIONS = [
 ];
 
 const SHAPE_OPTIONS = ["圆形", "椭圆", "梨形", "祖母绿切", "心形", "马眼形"];
-const STATUS_OPTIONS: SortingStatus[] = ["待分拣", "待镶嵌", "需客户确认", "已完成", "已确认"];
+const STATUS_OPTIONS: SortingStatus[] = ["待分拣", "待镶嵌", "需客户确认", "已完成"];
 
 const KANBAN_STATUSES: { key: SortingStatus; label: string; color: string; icon: string }[] = [
   { key: "待分拣", label: "待分拣", color: "#64748b", icon: "📥" },
@@ -148,11 +149,11 @@ const initialGemstones: Gemstone[] = [
 ];
 
 const initialBatches: Batch[] = [
-  { id: "batch-1", batchNo: "BATCH-202606001", orderNo: "ORD-88201", customerName: "周大福珠宝", expectedDate: "2026-07-15", remark: "高端定制婚戒系列", pendingCount: 3, confirmedCount: 1, defectCount: 0, createdAt: "2026-06-18 10:30:00" },
-  { id: "batch-2", batchNo: "BATCH-202606002", orderNo: "ORD-88201", customerName: "周大福珠宝", expectedDate: "2026-07-15", remark: "配套吊坠与副石", pendingCount: 2, confirmedCount: 2, defectCount: 0, createdAt: "2026-06-18 11:15:00" },
-  { id: "batch-3", batchNo: "BATCH-202606003", orderNo: "ORD-99102", customerName: "卡地亚精品", expectedDate: "2026-07-20", remark: "高端彩色宝石系列", pendingCount: 2, confirmedCount: 2, defectCount: 1, createdAt: "2026-06-19 09:00:00" },
-  { id: "batch-4", batchNo: "BATCH-202606004", orderNo: "ORD-99102", customerName: "卡地亚精品", expectedDate: "2026-07-20", remark: "配钻补充批次", pendingCount: 2, confirmedCount: 1, defectCount: 0, createdAt: "2026-06-19 14:20:00" },
-  { id: "batch-5", batchNo: "BATCH-202606005", orderNo: "ORD-77305", customerName: "蒂芙尼工坊", expectedDate: "2026-07-10", remark: "蓝宝石珍藏系列", pendingCount: 0, confirmedCount: 1, defectCount: 1, createdAt: "2026-06-20 08:45:00" },
+  { id: "batch-1", batchNo: "BATCH-202606001", orderNo: "ORD-88201", customerName: "周大福珠宝", expectedDate: "2026-07-15", remark: "高端定制婚戒系列", sortingCount: 1, pendingCount: 2, completedCount: 1, defectCount: 1, createdAt: "2026-06-18 10:30:00" },
+  { id: "batch-2", batchNo: "BATCH-202606002", orderNo: "ORD-88201", customerName: "周大福珠宝", expectedDate: "2026-07-15", remark: "配套吊坠与副石", sortingCount: 1, pendingCount: 1, completedCount: 2, defectCount: 0, createdAt: "2026-06-18 11:15:00" },
+  { id: "batch-3", batchNo: "BATCH-202606003", orderNo: "ORD-99102", customerName: "卡地亚精品", expectedDate: "2026-07-20", remark: "高端彩色宝石系列", sortingCount: 1, pendingCount: 2, completedCount: 1, defectCount: 1, createdAt: "2026-06-19 09:00:00" },
+  { id: "batch-4", batchNo: "BATCH-202606004", orderNo: "ORD-99102", customerName: "卡地亚精品", expectedDate: "2026-07-20", remark: "配钻补充批次", sortingCount: 1, pendingCount: 1, completedCount: 1, defectCount: 0, createdAt: "2026-06-19 14:20:00" },
+  { id: "batch-5", batchNo: "BATCH-202606005", orderNo: "ORD-77305", customerName: "蒂芙尼工坊", expectedDate: "2026-07-10", remark: "蓝宝石珍藏系列", sortingCount: 0, pendingCount: 0, completedCount: 1, defectCount: 1, createdAt: "2026-06-20 08:45:00" },
 ];
 
 const initialFormData: BatchFormData = {
@@ -498,8 +499,9 @@ function App() {
     setShowBatchForm(false);
   };
 
+  const totalSorting = batches.reduce((sum, b) => sum + b.sortingCount, 0);
   const totalPending = batches.reduce((sum, b) => sum + b.pendingCount, 0);
-  const totalConfirmed = batches.reduce((sum, b) => sum + b.confirmedCount, 0);
+  const totalCompleted = batches.reduce((sum, b) => sum + b.completedCount, 0);
   const totalDefect = batches.reduce((sum, b) => sum + b.defectCount, 0);
   const totalCarat = gemstones.reduce((sum, g) => sum + g.carat, 0);
 
@@ -514,8 +516,9 @@ function App() {
         gems: Gemstone[];
         totalCount: number;
         totalCarat: number;
+        sortingCount: number;
         pendingCount: number;
-        confirmedCount: number;
+        completedCount: number;
         needConfirmCount: number;
       }
     >();
@@ -530,8 +533,9 @@ function App() {
           gems: [],
           totalCount: 0,
           totalCarat: 0,
+          sortingCount: 0,
           pendingCount: 0,
-          confirmedCount: 0,
+          completedCount: 0,
           needConfirmCount: 0,
         });
       }
@@ -544,8 +548,9 @@ function App() {
         order.gems.push(gem);
         order.totalCount++;
         order.totalCarat += gem.carat;
-        if (gem.status === "待镶嵌") order.pendingCount++;
-        else if (gem.status === "已确认") order.confirmedCount++;
+        if (gem.status === "待分拣") order.sortingCount++;
+        else if (gem.status === "待镶嵌") order.pendingCount++;
+        else if (gem.status === "已完成") order.completedCount++;
         else if (gem.status === "需客户确认") order.needConfirmCount++;
       }
     });
@@ -559,7 +564,7 @@ function App() {
   }, [selectedOrderNo, orderList]);
 
   const getStatusClass = (status: SortingStatus) => {
-    if (status === "已确认" || status === "已完成") return "confirmed";
+    if (status === "已完成") return "confirmed";
     if (status === "需客户确认") return "pending";
     if (status === "待分拣") return "sorting";
     return "waiting";
@@ -610,18 +615,25 @@ function App() {
 
       <section className="batch-section">
         <div className="batch-summary">
+          <article className="summary-card sorting">
+            <div className="summary-icon">📥</div>
+            <div>
+              <small>待分拣总数</small>
+              <strong>{totalSorting}</strong>
+            </div>
+          </article>
           <article className="summary-card pending">
             <div className="summary-icon">⏳</div>
             <div>
-              <small>待分拣总数</small>
+              <small>待镶嵌总数</small>
               <strong>{totalPending}</strong>
             </div>
           </article>
           <article className="summary-card confirmed">
             <div className="summary-icon">✅</div>
             <div>
-              <small>已确认总数</small>
-              <strong>{totalConfirmed}</strong>
+              <small>已完成总数</small>
+              <strong>{totalCompleted}</strong>
             </div>
           </article>
           <article className="summary-card defect">
@@ -709,13 +721,17 @@ function App() {
                     </div>
                   </div>
                   <div className="batch-stats">
-                    <div className="stat-item stat-pending">
+                    <div className="stat-item stat-sorting">
                       <span className="stat-label">待分拣</span>
+                      <span className="stat-value">{batch.sortingCount}</span>
+                    </div>
+                    <div className="stat-item stat-pending">
+                      <span className="stat-label">待镶嵌</span>
                       <span className="stat-value">{batch.pendingCount}</span>
                     </div>
                     <div className="stat-item stat-confirmed">
-                      <span className="stat-label">已确认</span>
-                      <span className="stat-value">{batch.confirmedCount}</span>
+                      <span className="stat-label">已完成</span>
+                      <span className="stat-value">{batch.completedCount}</span>
                     </div>
                     <div className="stat-item stat-defect">
                       <span className="stat-label">缺陷</span>
@@ -1232,13 +1248,17 @@ function App() {
                 <div className="order-arrow">→</div>
               </div>
               <div className="order-stats">
+                <div className="stat-item stat-sorting">
+                  <span className="stat-label">待分拣</span>
+                  <span className="stat-value">{order.sortingCount}</span>
+                </div>
                 <div className="stat-item stat-pending">
                   <span className="stat-label">待镶嵌</span>
                   <span className="stat-value">{order.pendingCount}</span>
                 </div>
                 <div className="stat-item stat-confirmed">
-                  <span className="stat-label">已确认</span>
-                  <span className="stat-value">{order.confirmedCount}</span>
+                  <span className="stat-label">已完成</span>
+                  <span className="stat-value">{order.completedCount}</span>
                 </div>
                 <div className="stat-item stat-needconfirm">
                   <span className="stat-label">需确认</span>
@@ -1293,13 +1313,17 @@ function App() {
         </div>
 
         <div className="order-detail-stats-row">
+          <div className="stat-item stat-sorting">
+            <span className="stat-label">待分拣</span>
+            <span className="stat-value">{currentOrder.sortingCount}</span>
+          </div>
           <div className="stat-item stat-pending">
             <span className="stat-label">待镶嵌</span>
             <span className="stat-value">{currentOrder.pendingCount}</span>
           </div>
           <div className="stat-item stat-confirmed">
-            <span className="stat-label">已确认</span>
-            <span className="stat-value">{currentOrder.confirmedCount}</span>
+            <span className="stat-label">已完成</span>
+            <span className="stat-value">{currentOrder.completedCount}</span>
           </div>
           <div className="stat-item stat-needconfirm">
             <span className="stat-label">需客户确认</span>

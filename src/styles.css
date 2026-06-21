@@ -276,6 +276,16 @@ input {
   color: #b45309;
 }
 
+.summary-card.sorting {
+  border-top: 4px solid #64748b;
+}
+.summary-card.sorting .summary-icon {
+  background: color-mix(in srgb, #64748b 14%, #ffffff);
+}
+.summary-card.sorting strong {
+  color: #64748b;
+}
+
 .summary-card.confirmed {
   border-top: 4px solid var(--secondary);
 }
@@ -471,6 +481,10 @@ input {
 .stat-value {
   font-size: 22px;
   font-weight: 700;
+}
+
+.stat-sorting .stat-value {
+  color: #64748b;
 }
 
 .stat-pending .stat-value {
