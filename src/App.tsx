@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import "./styles.css";
 
 interface Batch {
@@ -20,6 +20,21 @@ interface BatchFormData {
   customerName: string;
   expectedDate: string;
   remark: string;
+}
+
+interface Gemstone {
+  id: string;
+  code: string;
+  type: string;
+  shape: string;
+  carat: number;
+  sizeL: number;
+  sizeW: number;
+  setting: string;
+  clarity: string;
+  color: string;
+  cut: string;
+  status: string;
 }
 
 const project = {
@@ -76,6 +91,29 @@ const project = {
   ]
 };
 
+const SHAPE_OPTIONS = ["圆形", "椭圆", "梨形", "祖母绿切", "心形", "马眼形"];
+
+const gemstones: Gemstone[] = [
+  { id: "g1", code: "ST-2048", type: "蓝宝石", shape: "椭圆", carat: 0.85, sizeL: 6.0, sizeW: 4.0, setting: "主石位", clarity: "VS1", color: "皇家蓝", cut: "明亮式", status: "待镶嵌" },
+  { id: "g2", code: "ST-2061", type: "钻石", shape: "圆形", carat: 0.08, sizeL: 2.5, sizeW: 2.5, setting: "围石A组", clarity: "VVS1", color: "D", cut: "理想切工", status: "待镶嵌" },
+  { id: "g3", code: "ST-2099", type: "祖母绿", shape: "祖母绿切", carat: 1.20, sizeL: 7.0, sizeW: 5.0, setting: "主石位", clarity: "VS2", color: "翠绿", cut: "阶梯式", status: "需客户确认" },
+  { id: "g4", code: "ST-2105", type: "红宝石", shape: "椭圆", carat: 1.05, sizeL: 7.0, sizeW: 5.0, setting: "主石位", clarity: "VS1", color: "鸽血红", cut: "明亮式", status: "已确认" },
+  { id: "g5", code: "ST-2112", type: "钻石", shape: "圆形", carat: 0.05, sizeL: 2.0, sizeW: 2.0, setting: "围石B组", clarity: "VVS2", color: "E", cut: "极优良", status: "待镶嵌" },
+  { id: "g6", code: "ST-2128", type: "碧玺", shape: "梨形", carat: 2.30, sizeL: 10.0, sizeW: 7.0, setting: "吊坠位", clarity: "SI1", color: "帕拉伊巴", cut: "明亮式", status: "待镶嵌" },
+  { id: "g7", code: "ST-2135", type: "钻石", shape: "心形", carat: 0.50, sizeL: 5.0, sizeW: 5.0, setting: "副石位", clarity: "VS1", color: "F", cut: "理想切工", status: "已确认" },
+  { id: "g8", code: "ST-2142", type: "蓝宝石", shape: "马眼形", carat: 0.75, sizeL: 8.0, sizeW: 4.0, setting: "围石C组", clarity: "VS2", color: "矢车菊蓝", cut: "明亮式", status: "待镶嵌" },
+  { id: "g9", code: "ST-2150", type: "钻石", shape: "圆形", carat: 0.12, sizeL: 3.0, sizeW: 3.0, setting: "围石A组", clarity: "VVS1", color: "G", cut: "优良", status: "已确认" },
+  { id: "g10", code: "ST-2167", type: "坦桑石", shape: "梨形", carat: 3.10, sizeL: 12.0, sizeW: 8.0, setting: "主石位", clarity: "SI2", color: "蓝紫", cut: "混合式", status: "需客户确认" },
+  { id: "g11", code: "ST-2173", type: "钻石", shape: "椭圆", carat: 0.30, sizeL: 5.0, sizeW: 3.5, setting: "围石B组", clarity: "VS2", color: "H", cut: "极优良", status: "待镶嵌" },
+  { id: "g12", code: "ST-2189", type: "红宝石", shape: "圆形", carat: 0.20, sizeL: 3.5, sizeW: 3.5, setting: "围石C组", clarity: "SI1", color: "玫红", cut: "明亮式", status: "已确认" },
+  { id: "g13", code: "ST-2195", type: "祖母绿", shape: "祖母绿切", carat: 0.65, sizeL: 6.0, sizeW: 4.5, setting: "副石位", clarity: "VS1", color: "绿", cut: "阶梯式", status: "待镶嵌" },
+  { id: "g14", code: "ST-2201", type: "钻石", shape: "马眼形", carat: 0.40, sizeL: 6.0, sizeW: 3.0, setting: "围石A组", clarity: "VVS1", color: "E", cut: "理想切工", status: "待镶嵌" },
+  { id: "g15", code: "ST-2218", type: "尖晶石", shape: "心形", carat: 1.80, sizeL: 7.5, sizeW: 7.5, setting: "吊坠位", clarity: "VS2", color: "绝地武士", cut: "明亮式", status: "已确认" },
+  { id: "g16", code: "ST-2225", type: "钻石", shape: "圆形", carat: 0.03, sizeL: 1.5, sizeW: 1.5, setting: "围石B组", clarity: "VVS1", color: "D", cut: "理想切工", status: "待镶嵌" },
+  { id: "g17", code: "ST-2231", type: "蓝宝石", shape: "梨形", carat: 1.50, sizeL: 9.0, sizeW: 6.0, setting: "主石位", clarity: "IF", color: "帕帕拉恰", cut: "明亮式", status: "需客户确认" },
+  { id: "g18", code: "ST-2248", type: "钻石", shape: "椭圆", carat: 0.15, sizeL: 4.0, sizeW: 3.0, setting: "围石C组", clarity: "VS1", color: "F", cut: "优良", status: "已确认" },
+];
+
 const initialFormData: BatchFormData = {
   batchNo: "",
   orderNo: "",
@@ -88,6 +126,58 @@ function App() {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [formData, setFormData] = useState<BatchFormData>(initialFormData);
   const [showBatchForm, setShowBatchForm] = useState(false);
+
+  const [selectedShapes, setSelectedShapes] = useState<string[]>([]);
+  const [sizeMin, setSizeMin] = useState("");
+  const [sizeMax, setSizeMax] = useState("");
+  const [caratMin, setCaratMin] = useState("");
+  const [caratMax, setCaratMax] = useState("");
+
+  const toggleShape = (shape: string) => {
+    setSelectedShapes((prev) =>
+      prev.includes(shape) ? prev.filter((s) => s !== shape) : [...prev, shape]
+    );
+  };
+
+  const resetFilters = () => {
+    setSelectedShapes([]);
+    setSizeMin("");
+    setSizeMax("");
+    setCaratMin("");
+    setCaratMax("");
+  };
+
+  const hasActiveFilters =
+    selectedShapes.length > 0 ||
+    sizeMin !== "" ||
+    sizeMax !== "" ||
+    caratMin !== "" ||
+    caratMax !== "";
+
+  const filteredGemstones = useMemo(() => {
+    return gemstones.filter((g) => {
+      if (selectedShapes.length > 0 && !selectedShapes.includes(g.shape)) return false;
+      if (sizeMin !== "") {
+        const min = parseFloat(sizeMin);
+        if (!isNaN(min) && (g.sizeL < min || g.sizeW < min)) return false;
+      }
+      if (sizeMax !== "") {
+        const max = parseFloat(sizeMax);
+        if (!isNaN(max) && (g.sizeL > max || g.sizeW > max)) return false;
+      }
+      if (caratMin !== "") {
+        const min = parseFloat(caratMin);
+        if (!isNaN(min) && g.carat < min) return false;
+      }
+      if (caratMax !== "") {
+        const max = parseFloat(caratMax);
+        if (!isNaN(max) && g.carat > max) return false;
+      }
+      return true;
+    });
+  }, [selectedShapes, sizeMin, sizeMax, caratMin, caratMax]);
+
+  const displayedGemstones = hasActiveFilters ? filteredGemstones : gemstones;
 
   const handleFormChange = (field: keyof BatchFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -317,6 +407,143 @@ function App() {
               </label>
             ))}
           </div>
+        </section>
+      </section>
+
+      <section className="filter-module">
+        <aside className="panel filter-panel">
+          <div className="heading">
+            <div>
+              <p>尺寸筛选</p>
+              <h2>宝石条件过滤</h2>
+            </div>
+            {hasActiveFilters && (
+              <button className="reset-btn" onClick={resetFilters}>
+                重置
+              </button>
+            )}
+          </div>
+
+          <div className="filter-group">
+            <h3>形状</h3>
+            <div className="chips">
+              {SHAPE_OPTIONS.map((shape) => (
+                <button
+                  key={shape}
+                  className={selectedShapes.includes(shape) ? "active" : ""}
+                  onClick={() => toggleShape(shape)}
+                >
+                  {shape}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="filter-group">
+            <h3>尺寸区间 (mm)</h3>
+            <div className="range-inputs">
+              <input
+                type="number"
+                placeholder="最小"
+                value={sizeMin}
+                min="0"
+                step="0.5"
+                onChange={(e) => setSizeMin(e.target.value)}
+              />
+              <span className="range-sep">—</span>
+              <input
+                type="number"
+                placeholder="最大"
+                value={sizeMax}
+                min="0"
+                step="0.5"
+                onChange={(e) => setSizeMax(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="filter-group">
+            <h3>克拉重量区间 (ct)</h3>
+            <div className="range-inputs">
+              <input
+                type="number"
+                placeholder="最小"
+                value={caratMin}
+                min="0"
+                step="0.01"
+                onChange={(e) => setCaratMin(e.target.value)}
+              />
+              <span className="range-sep">—</span>
+              <input
+                type="number"
+                placeholder="最大"
+                value={caratMax}
+                min="0"
+                step="0.01"
+                onChange={(e) => setCaratMax(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {hasActiveFilters && (
+            <div className="filter-summary">
+              <span className="filter-badge">
+                匹配 <strong>{filteredGemstones.length}</strong> / {gemstones.length} 条
+              </span>
+            </div>
+          )}
+        </aside>
+
+        <section className="panel filter-results">
+          <div className="heading">
+            <div>
+              <p>实时预览</p>
+              <h2>匹配清单</h2>
+            </div>
+            <span className="result-count">
+              共 {displayedGemstones.length} 条记录
+            </span>
+          </div>
+
+          {displayedGemstones.length === 0 ? (
+            <div className="empty-state filter-empty">
+              <div className="empty-icon">🔍</div>
+              <p>没有找到符合条件的宝石记录</p>
+              <button className="reset-btn" onClick={resetFilters}>
+                清除筛选条件
+              </button>
+            </div>
+          ) : (
+            <div className="gem-list">
+              {displayedGemstones.map((g, index) => (
+                <article key={g.id} className="gem-card">
+                  <div className="gem-index">
+                    <b>{String(index + 1).padStart(2, "0")}</b>
+                  </div>
+                  <div className="gem-info">
+                    <div className="gem-title-row">
+                      <h3>{g.code}</h3>
+                      <span className="gem-type-tag">{g.type}</span>
+                      <span className={`gem-status gem-status-${g.status === "已确认" ? "confirmed" : g.status === "需客户确认" ? "pending" : "waiting"}`}>
+                        {g.status}
+                      </span>
+                    </div>
+                    <div className="gem-details">
+                      <span>💎 {g.shape}</span>
+                      <span>📐 {g.sizeL}×{g.sizeW}mm</span>
+                      <span>⚖️ {g.carat}ct</span>
+                      <span>🎨 {g.color}</span>
+                      <span>🔍 {g.clarity}</span>
+                      <span>✂️ {g.cut}</span>
+                    </div>
+                    <div className="gem-meta">
+                      <span>镶嵌位置：{g.setting}</span>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
         </section>
       </section>
 
