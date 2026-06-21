@@ -27,10 +27,6 @@ interface Batch {
   customerName: string;
   expectedDate: string;
   remark: string;
-  sortingCount: number;
-  pendingCount: number;
-  completedCount: number;
-  defectCount: number;
   createdAt: string;
 }
 
@@ -120,6 +116,13 @@ const DEFECT_TYPE_OPTIONS = [
 const SHAPE_OPTIONS = ["圆形", "椭圆", "梨形", "祖母绿切", "心形", "马眼形"];
 const STATUS_OPTIONS: SortingStatus[] = ["待分拣", "待镶嵌", "需客户确认", "已完成"];
 
+type BatchStatusCounts = {
+  sortingCount: number;
+  pendingCount: number;
+  completedCount: number;
+  defectCount: number;
+};
+
 const KANBAN_STATUSES: { key: SortingStatus; label: string; color: string; icon: string }[] = [
   { key: "待分拣", label: "待分拣", color: "#64748b", icon: "📥" },
   { key: "待镶嵌", label: "待镶嵌", color: "#f59e0b", icon: "⏳" },
@@ -149,11 +152,11 @@ const initialGemstones: Gemstone[] = [
 ];
 
 const initialBatches: Batch[] = [
-  { id: "batch-1", batchNo: "BATCH-202606001", orderNo: "ORD-88201", customerName: "周大福珠宝", expectedDate: "2026-07-15", remark: "高端定制婚戒系列", sortingCount: 1, pendingCount: 2, completedCount: 1, defectCount: 1, createdAt: "2026-06-18 10:30:00" },
-  { id: "batch-2", batchNo: "BATCH-202606002", orderNo: "ORD-88201", customerName: "周大福珠宝", expectedDate: "2026-07-15", remark: "配套吊坠与副石", sortingCount: 1, pendingCount: 1, completedCount: 2, defectCount: 0, createdAt: "2026-06-18 11:15:00" },
-  { id: "batch-3", batchNo: "BATCH-202606003", orderNo: "ORD-99102", customerName: "卡地亚精品", expectedDate: "2026-07-20", remark: "高端彩色宝石系列", sortingCount: 1, pendingCount: 2, completedCount: 1, defectCount: 1, createdAt: "2026-06-19 09:00:00" },
-  { id: "batch-4", batchNo: "BATCH-202606004", orderNo: "ORD-99102", customerName: "卡地亚精品", expectedDate: "2026-07-20", remark: "配钻补充批次", sortingCount: 1, pendingCount: 1, completedCount: 1, defectCount: 0, createdAt: "2026-06-19 14:20:00" },
-  { id: "batch-5", batchNo: "BATCH-202606005", orderNo: "ORD-77305", customerName: "蒂芙尼工坊", expectedDate: "2026-07-10", remark: "蓝宝石珍藏系列", sortingCount: 0, pendingCount: 0, completedCount: 1, defectCount: 1, createdAt: "2026-06-20 08:45:00" },
+  { id: "batch-1", batchNo: "BATCH-202606001", orderNo: "ORD-88201", customerName: "周大福珠宝", expectedDate: "2026-07-15", remark: "高端定制婚戒系列", createdAt: "2026-06-18 10:30:00" },
+  { id: "batch-2", batchNo: "BATCH-202606002", orderNo: "ORD-88201", customerName: "周大福珠宝", expectedDate: "2026-07-15", remark: "配套吊坠与副石", createdAt: "2026-06-18 11:15:00" },
+  { id: "batch-3", batchNo: "BATCH-202606003", orderNo: "ORD-99102", customerName: "卡地亚精品", expectedDate: "2026-07-20", remark: "高端彩色宝石系列", createdAt: "2026-06-19 09:00:00" },
+  { id: "batch-4", batchNo: "BATCH-202606004", orderNo: "ORD-99102", customerName: "卡地亚精品", expectedDate: "2026-07-20", remark: "配钻补充批次", createdAt: "2026-06-19 14:20:00" },
+  { id: "batch-5", batchNo: "BATCH-202606005", orderNo: "ORD-77305", customerName: "蒂芙尼工坊", expectedDate: "2026-07-10", remark: "蓝宝石珍藏系列", createdAt: "2026-06-20 08:45:00" },
 ];
 
 const initialFormData: BatchFormData = {
@@ -499,10 +502,32 @@ function App() {
     setShowBatchForm(false);
   };
 
-  const totalSorting = batches.reduce((sum, b) => sum + b.sortingCount, 0);
-  const totalPending = batches.reduce((sum, b) => sum + b.pendingCount, 0);
-  const totalCompleted = batches.reduce((sum, b) => sum + b.completedCount, 0);
-  const totalDefect = batches.reduce((sum, b) => sum + b.defectCount, 0);
+  const emptyBatchStatusCounts = (): BatchStatusCounts => ({
+    sortingCount: 0,
+    pendingCount: 0,
+    completedCount: 0,
+    defectCount: 0,
+  });
+
+  const batchStatusCounts = useMemo(() => {
+    const counts: Record<string, BatchStatusCounts> = {};
+    batches.forEach((batch) => {
+      counts[batch.id] = emptyBatchStatusCounts();
+    });
+    gemstones.forEach((gem) => {
+      if (!counts[gem.batchId]) counts[gem.batchId] = emptyBatchStatusCounts();
+      if (gem.status === "待分拣") counts[gem.batchId].sortingCount++;
+      else if (gem.status === "待镶嵌") counts[gem.batchId].pendingCount++;
+      else if (gem.status === "已完成") counts[gem.batchId].completedCount++;
+      else if (gem.status === "需客户确认") counts[gem.batchId].defectCount++;
+    });
+    return counts;
+  }, [batches, gemstones]);
+
+  const totalSorting = gemstones.filter((g) => g.status === "待分拣").length;
+  const totalPending = gemstones.filter((g) => g.status === "待镶嵌").length;
+  const totalCompleted = gemstones.filter((g) => g.status === "已完成").length;
+  const totalDefect = gemstones.filter((g) => g.status === "需客户确认").length;
   const totalCarat = gemstones.reduce((sum, g) => sum + g.carat, 0);
 
   const orderList = useMemo(() => {
@@ -702,47 +727,50 @@ function App() {
                 <p>暂无批次数据</p>
               </div>
             ) : (
-              batches.map((batch, index) => (
-                <article key={batch.id} className="batch-card">
-                  <div className="batch-header">
-                    <div className="batch-index">
-                      <b>{String(index + 1).padStart(2, "0")}</b>
-                    </div>
-                    <div className="batch-info">
-                      <div className="batch-title-row">
-                        <h3>{batch.batchNo}</h3>
-                        <span className="batch-tag">订单 {batch.orderNo}</span>
+              batches.map((batch, index) => {
+                const counts = batchStatusCounts[batch.id] || emptyBatchStatusCounts();
+                return (
+                  <article key={batch.id} className="batch-card">
+                    <div className="batch-header">
+                      <div className="batch-index">
+                        <b>{String(index + 1).padStart(2, "0")}</b>
                       </div>
-                      <p className="batch-customer">
-                        👤 {batch.customerName}
-                        {batch.expectedDate && <span className="batch-date">📅 预计交付：{batch.expectedDate}</span>}
-                      </p>
-                      {batch.remark && <p className="batch-remark">📝 {batch.remark}</p>}
+                      <div className="batch-info">
+                        <div className="batch-title-row">
+                          <h3>{batch.batchNo}</h3>
+                          <span className="batch-tag">订单 {batch.orderNo}</span>
+                        </div>
+                        <p className="batch-customer">
+                          👤 {batch.customerName}
+                          {batch.expectedDate && <span className="batch-date">📅 预计交付：{batch.expectedDate}</span>}
+                        </p>
+                        {batch.remark && <p className="batch-remark">📝 {batch.remark}</p>}
+                      </div>
                     </div>
-                  </div>
-                  <div className="batch-stats">
-                    <div className="stat-item stat-sorting">
-                      <span className="stat-label">待分拣</span>
-                      <span className="stat-value">{batch.sortingCount}</span>
+                    <div className="batch-stats">
+                      <div className="stat-item stat-sorting">
+                        <span className="stat-label">待分拣</span>
+                        <span className="stat-value">{counts.sortingCount}</span>
+                      </div>
+                      <div className="stat-item stat-pending">
+                        <span className="stat-label">待镶嵌</span>
+                        <span className="stat-value">{counts.pendingCount}</span>
+                      </div>
+                      <div className="stat-item stat-confirmed">
+                        <span className="stat-label">已完成</span>
+                        <span className="stat-value">{counts.completedCount}</span>
+                      </div>
+                      <div className="stat-item stat-defect">
+                        <span className="stat-label">缺陷</span>
+                        <span className="stat-value">{counts.defectCount}</span>
+                      </div>
                     </div>
-                    <div className="stat-item stat-pending">
-                      <span className="stat-label">待镶嵌</span>
-                      <span className="stat-value">{batch.pendingCount}</span>
+                    <div className="batch-footer">
+                      <span>创建时间：{batch.createdAt}</span>
                     </div>
-                    <div className="stat-item stat-confirmed">
-                      <span className="stat-label">已完成</span>
-                      <span className="stat-value">{batch.completedCount}</span>
-                    </div>
-                    <div className="stat-item stat-defect">
-                      <span className="stat-label">缺陷</span>
-                      <span className="stat-value">{batch.defectCount}</span>
-                    </div>
-                  </div>
-                  <div className="batch-footer">
-                    <span>创建时间：{batch.createdAt}</span>
-                  </div>
-                </article>
-              ))
+                  </article>
+                );
+              })
             )}
           </div>
         </section>
