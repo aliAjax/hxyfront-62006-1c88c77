@@ -2,8 +2,8 @@ import { useState, useMemo } from "react";
 import "./styles.css";
 
 type SettingPositionType = "主石位" | "围石A组" | "围石B组" | "备用石位";
-type ViewType = "workbench" | "orderList" | "orderDetail";
-type SortingStatus = "待镶嵌" | "已确认" | "需客户确认";
+type ViewType = "workbench" | "orderList" | "orderDetail" | "kanban";
+type SortingStatus = "待分拣" | "待镶嵌" | "需客户确认" | "已完成" | "已确认";
 
 interface SettingPosition {
   key: SettingPositionType;
@@ -117,27 +117,34 @@ const DEFECT_TYPE_OPTIONS = [
 ];
 
 const SHAPE_OPTIONS = ["圆形", "椭圆", "梨形", "祖母绿切", "心形", "马眼形"];
-const STATUS_OPTIONS: SortingStatus[] = ["待镶嵌", "已确认", "需客户确认"];
+const STATUS_OPTIONS: SortingStatus[] = ["待分拣", "待镶嵌", "需客户确认", "已完成", "已确认"];
+
+const KANBAN_STATUSES: { key: SortingStatus; label: string; color: string; icon: string }[] = [
+  { key: "待分拣", label: "待分拣", color: "#64748b", icon: "📥" },
+  { key: "待镶嵌", label: "待镶嵌", color: "#f59e0b", icon: "⏳" },
+  { key: "需客户确认", label: "需客户确认", color: "#be123c", icon: "⚠️" },
+  { key: "已完成", label: "已完成", color: "#0f766e", icon: "✅" },
+];
 
 const initialGemstones: Gemstone[] = [
   { id: "g1", code: "ST-2048", type: "蓝宝石", shape: "椭圆", carat: 0.85, sizeL: 6.0, sizeW: 4.0, setting: "主石位", clarity: "VS1", color: "皇家蓝", cut: "明亮式", status: "待镶嵌", batchId: "batch-1", orderNo: "ORD-88201", defectRemark: "" },
   { id: "g2", code: "ST-2061", type: "钻石", shape: "圆形", carat: 0.08, sizeL: 2.5, sizeW: 2.5, setting: "围石A组", clarity: "VVS1", color: "D", cut: "理想切工", status: "待镶嵌", batchId: "batch-1", orderNo: "ORD-88201", defectRemark: "" },
   { id: "g3", code: "ST-2099", type: "祖母绿", shape: "祖母绿切", carat: 1.20, sizeL: 7.0, sizeW: 5.0, setting: "主石位", clarity: "VS2", color: "翠绿", cut: "阶梯式", status: "需客户确认", batchId: "batch-1", orderNo: "ORD-88201", defectRemark: "内含物明显，需客户确认是否接受" },
-  { id: "g4", code: "ST-2105", type: "红宝石", shape: "椭圆", carat: 1.05, sizeL: 7.0, sizeW: 5.0, setting: "主石位", clarity: "VS1", color: "鸽血红", cut: "明亮式", status: "已确认", batchId: "batch-1", orderNo: "ORD-88201", defectRemark: "" },
-  { id: "g5", code: "ST-2112", type: "钻石", shape: "圆形", carat: 0.05, sizeL: 2.0, sizeW: 2.0, setting: "围石B组", clarity: "VVS2", color: "E", cut: "极优良", status: "待镶嵌", batchId: "batch-1", orderNo: "ORD-88201", defectRemark: "" },
-  { id: "g6", code: "ST-2128", type: "碧玺", shape: "梨形", carat: 2.30, sizeL: 10.0, sizeW: 7.0, setting: "吊坠位", clarity: "SI1", color: "帕拉伊巴", cut: "明亮式", status: "待镶嵌", batchId: "batch-2", orderNo: "ORD-88201", defectRemark: "颜色饱和度高，内部有轻微棉絮" },
-  { id: "g7", code: "ST-2135", type: "钻石", shape: "心形", carat: 0.50, sizeL: 5.0, sizeW: 5.0, setting: "副石位", clarity: "VS1", color: "F", cut: "理想切工", status: "已确认", batchId: "batch-2", orderNo: "ORD-88201", defectRemark: "" },
+  { id: "g4", code: "ST-2105", type: "红宝石", shape: "椭圆", carat: 1.05, sizeL: 7.0, sizeW: 5.0, setting: "主石位", clarity: "VS1", color: "鸽血红", cut: "明亮式", status: "已完成", batchId: "batch-1", orderNo: "ORD-88201", defectRemark: "" },
+  { id: "g5", code: "ST-2112", type: "钻石", shape: "圆形", carat: 0.05, sizeL: 2.0, sizeW: 2.0, setting: "围石B组", clarity: "VVS2", color: "E", cut: "极优良", status: "待分拣", batchId: "batch-1", orderNo: "ORD-88201", defectRemark: "" },
+  { id: "g6", code: "ST-2128", type: "碧玺", shape: "梨形", carat: 2.30, sizeL: 10.0, sizeW: 7.0, setting: "吊坠位", clarity: "SI1", color: "帕拉伊巴", cut: "明亮式", status: "待分拣", batchId: "batch-2", orderNo: "ORD-88201", defectRemark: "颜色饱和度高，内部有轻微棉絮" },
+  { id: "g7", code: "ST-2135", type: "钻石", shape: "心形", carat: 0.50, sizeL: 5.0, sizeW: 5.0, setting: "副石位", clarity: "VS1", color: "F", cut: "理想切工", status: "已完成", batchId: "batch-2", orderNo: "ORD-88201", defectRemark: "" },
   { id: "g8", code: "ST-2142", type: "蓝宝石", shape: "马眼形", carat: 0.75, sizeL: 8.0, sizeW: 4.0, setting: "围石C组", clarity: "VS2", color: "矢车菊蓝", cut: "明亮式", status: "待镶嵌", batchId: "batch-2", orderNo: "ORD-88201", defectRemark: "" },
-  { id: "g9", code: "ST-2150", type: "钻石", shape: "圆形", carat: 0.12, sizeL: 3.0, sizeW: 3.0, setting: "围石A组", clarity: "VVS1", color: "G", cut: "优良", status: "已确认", batchId: "batch-2", orderNo: "ORD-88201", defectRemark: "" },
+  { id: "g9", code: "ST-2150", type: "钻石", shape: "圆形", carat: 0.12, sizeL: 3.0, sizeW: 3.0, setting: "围石A组", clarity: "VVS1", color: "G", cut: "优良", status: "已完成", batchId: "batch-2", orderNo: "ORD-88201", defectRemark: "" },
   { id: "g10", code: "ST-2167", type: "坦桑石", shape: "梨形", carat: 3.10, sizeL: 12.0, sizeW: 8.0, setting: "主石位", clarity: "SI2", color: "蓝紫", cut: "混合式", status: "需客户确认", batchId: "batch-3", orderNo: "ORD-99102", defectRemark: "尺寸偏大，需确认镶嵌方案" },
   { id: "g11", code: "ST-2173", type: "钻石", shape: "椭圆", carat: 0.30, sizeL: 5.0, sizeW: 3.5, setting: "围石B组", clarity: "VS2", color: "H", cut: "极优良", status: "待镶嵌", batchId: "batch-3", orderNo: "ORD-99102", defectRemark: "" },
-  { id: "g12", code: "ST-2189", type: "红宝石", shape: "圆形", carat: 0.20, sizeL: 3.5, sizeW: 3.5, setting: "围石C组", clarity: "SI1", color: "玫红", cut: "明亮式", status: "已确认", batchId: "batch-3", orderNo: "ORD-99102", defectRemark: "" },
-  { id: "g13", code: "ST-2195", type: "祖母绿", shape: "祖母绿切", carat: 0.65, sizeL: 6.0, sizeW: 4.5, setting: "副石位", clarity: "VS1", color: "绿", cut: "阶梯式", status: "待镶嵌", batchId: "batch-3", orderNo: "ORD-99102", defectRemark: "" },
+  { id: "g12", code: "ST-2189", type: "红宝石", shape: "圆形", carat: 0.20, sizeL: 3.5, sizeW: 3.5, setting: "围石C组", clarity: "SI1", color: "玫红", cut: "明亮式", status: "已完成", batchId: "batch-3", orderNo: "ORD-99102", defectRemark: "" },
+  { id: "g13", code: "ST-2195", type: "祖母绿", shape: "祖母绿切", carat: 0.65, sizeL: 6.0, sizeW: 4.5, setting: "副石位", clarity: "VS1", color: "绿", cut: "阶梯式", status: "待分拣", batchId: "batch-3", orderNo: "ORD-99102", defectRemark: "" },
   { id: "g14", code: "ST-2201", type: "钻石", shape: "马眼形", carat: 0.40, sizeL: 6.0, sizeW: 3.0, setting: "围石A组", clarity: "VVS1", color: "E", cut: "理想切工", status: "待镶嵌", batchId: "batch-4", orderNo: "ORD-99102", defectRemark: "" },
-  { id: "g15", code: "ST-2218", type: "尖晶石", shape: "心形", carat: 1.80, sizeL: 7.5, sizeW: 7.5, setting: "吊坠位", clarity: "VS2", color: "绝地武士", cut: "明亮式", status: "已确认", batchId: "batch-4", orderNo: "ORD-99102", defectRemark: "" },
-  { id: "g16", code: "ST-2225", type: "钻石", shape: "圆形", carat: 0.03, sizeL: 1.5, sizeW: 1.5, setting: "围石B组", clarity: "VVS1", color: "D", cut: "理想切工", status: "待镶嵌", batchId: "batch-4", orderNo: "ORD-99102", defectRemark: "" },
+  { id: "g15", code: "ST-2218", type: "尖晶石", shape: "心形", carat: 1.80, sizeL: 7.5, sizeW: 7.5, setting: "吊坠位", clarity: "VS2", color: "绝地武士", cut: "明亮式", status: "已完成", batchId: "batch-4", orderNo: "ORD-99102", defectRemark: "" },
+  { id: "g16", code: "ST-2225", type: "钻石", shape: "圆形", carat: 0.03, sizeL: 1.5, sizeW: 1.5, setting: "围石B组", clarity: "VVS1", color: "D", cut: "理想切工", status: "待分拣", batchId: "batch-4", orderNo: "ORD-99102", defectRemark: "" },
   { id: "g17", code: "ST-2231", type: "蓝宝石", shape: "梨形", carat: 1.50, sizeL: 9.0, sizeW: 6.0, setting: "主石位", clarity: "IF", color: "帕帕拉恰", cut: "明亮式", status: "需客户确认", batchId: "batch-5", orderNo: "ORD-77305", defectRemark: "颜色稀有，需客户确认最终款式" },
-  { id: "g18", code: "ST-2248", type: "钻石", shape: "椭圆", carat: 0.15, sizeL: 4.0, sizeW: 3.0, setting: "围石C组", clarity: "VS1", color: "F", cut: "优良", status: "已确认", batchId: "batch-5", orderNo: "ORD-77305", defectRemark: "" },
+  { id: "g18", code: "ST-2248", type: "钻石", shape: "椭圆", carat: 0.15, sizeL: 4.0, sizeW: 3.0, setting: "围石C组", clarity: "VS1", color: "F", cut: "优良", status: "已完成", batchId: "batch-5", orderNo: "ORD-77305", defectRemark: "" },
 ];
 
 const initialBatches: Batch[] = [
@@ -193,6 +200,11 @@ function App() {
   const [sizeMax, setSizeMax] = useState("");
   const [caratMin, setCaratMin] = useState("");
   const [caratMax, setCaratMax] = useState("");
+
+  const [kanbanDraggedGemId, setKanbanDraggedGemId] = useState<string | null>(null);
+  const [kanbanDragOverStatus, setKanbanDragOverStatus] = useState<SortingStatus | null>(null);
+  const [showKanbanDefectPanel, setShowKanbanDefectPanel] = useState(false);
+  const [kanbanDefectGemId, setKanbanDefectGemId] = useState<string>("");
 
   const updateGemstone = (gemId: string, updated: Partial<Gemstone>) => {
     setGemstones((prev) => prev.map((g) => (g.id === gemId ? { ...g, ...updated } : g)));
@@ -546,7 +558,12 @@ function App() {
     return orderList.find((o) => o.orderNo === selectedOrderNo) || null;
   }, [selectedOrderNo, orderList]);
 
-  const getStatusClass = (status: SortingStatus) => (status === "已确认" ? "confirmed" : status === "需客户确认" ? "pending" : "waiting");
+  const getStatusClass = (status: SortingStatus) => {
+    if (status === "已确认" || status === "已完成") return "confirmed";
+    if (status === "需客户确认") return "pending";
+    if (status === "待分拣") return "sorting";
+    return "waiting";
+  };
 
   const renderStatusTag = (status: SortingStatus) => (
     <span className={`gem-status gem-status-${getStatusClass(status)}`}>{status}</span>
@@ -1366,6 +1383,317 @@ function App() {
     );
   };
 
+  const kanbanStats = useMemo(() => {
+    const stats: Record<string, { count: number; carat: number }> = {};
+    KANBAN_STATUSES.forEach((s) => {
+      stats[s.key] = { count: 0, carat: 0 };
+    });
+    gemstones.forEach((g) => {
+      if (stats[g.status]) {
+        stats[g.status].count++;
+        stats[g.status].carat += g.carat;
+      }
+    });
+    const totalCount = gemstones.length;
+    const totalCarat = gemstones.reduce((sum, g) => sum + g.carat, 0);
+    return { stats, totalCount, totalCarat };
+  }, [gemstones]);
+
+  const getGemsByStatus = (status: SortingStatus): Gemstone[] => {
+    return gemstones.filter((g) => g.status === status);
+  };
+
+  const updateGemStatus = (gemId: string, newStatus: SortingStatus) => {
+    updateGemstone(gemId, { status: newStatus });
+  };
+
+  const handleKanbanDragStart = (e: React.DragEvent, gemId: string) => {
+    setKanbanDraggedGemId(gemId);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", gemId);
+  };
+
+  const handleKanbanDragEnd = () => {
+    setKanbanDraggedGemId(null);
+    setKanbanDragOverStatus(null);
+  };
+
+  const handleKanbanDragOver = (e: React.DragEvent, status: SortingStatus) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setKanbanDragOverStatus(status);
+  };
+
+  const handleKanbanDragLeave = () => {
+    setKanbanDragOverStatus(null);
+  };
+
+  const handleKanbanDrop = (e: React.DragEvent, status: SortingStatus) => {
+    e.preventDefault();
+    const gemId = e.dataTransfer.getData("text/plain") || kanbanDraggedGemId;
+    if (gemId) {
+      updateGemStatus(gemId, status);
+    }
+    setKanbanDraggedGemId(null);
+    setKanbanDragOverStatus(null);
+  };
+
+  const openDefectRemarkFromKanban = (gemId: string) => {
+    setKanbanDefectGemId(gemId);
+    const gem = gemstones.find((g) => g.id === gemId);
+    if (gem) {
+      setSelectedGemId(gemId);
+      setDefectRemarkText(gem.defectRemark || "");
+      if (gem.defectRemark) {
+        setSelectedDefectTypes(["内含物明显"]);
+      }
+      setNeedConfirm(true);
+      setShowKanbanDefectPanel(true);
+      setShowDefectPanel(true);
+    }
+  };
+
+  const handleSubmitKanbanDefect = () => {
+    if (!kanbanDefectGemId) {
+      alert("请先选择一颗宝石");
+      return;
+    }
+    if (selectedDefectTypes.length === 0) {
+      alert("请至少选择一种缺陷类型");
+      return;
+    }
+    const gem = gemstones.find((g) => g.id === kanbanDefectGemId);
+    if (!gem) return;
+    const newRemark: DefectRemark = {
+      id: `defect-${Date.now()}`,
+      gemId: kanbanDefectGemId,
+      gemCode: gem.code,
+      defectTypes: [...selectedDefectTypes],
+      remark: defectRemarkText,
+      needConfirm: true,
+      createdAt: new Date().toLocaleString("zh-CN"),
+    };
+    setDefectRemarks((prev) => [newRemark, ...prev]);
+    updateGemstone(kanbanDefectGemId, {
+      defectRemark: defectRemarkText,
+      status: "需客户确认",
+    });
+    setKanbanDefectGemId("");
+    setSelectedDefectTypes([]);
+    setDefectRemarkText("");
+    setNeedConfirm(false);
+    setShowKanbanDefectPanel(false);
+    setShowDefectPanel(false);
+  };
+
+  const closeKanbanDefectPanel = () => {
+    setShowKanbanDefectPanel(false);
+    setShowDefectPanel(false);
+    setKanbanDefectGemId("");
+    setSelectedDefectTypes([]);
+    setDefectRemarkText("");
+    setNeedConfirm(false);
+  };
+
+  const renderKanbanGemCard = (g: Gemstone) => (
+    <div
+      key={g.id}
+      className={`kanban-gem-card ${kanbanDraggedGemId === g.id ? "dragging" : ""}`}
+      draggable
+      onDragStart={(e) => handleKanbanDragStart(e, g.id)}
+      onDragEnd={handleKanbanDragEnd}
+      onClick={() => openGemDetailDrawer(g.id)}
+    >
+      <div className="kanban-gem-header">
+        <h4>{g.code}</h4>
+        <span className="kanban-gem-type">{g.type}</span>
+      </div>
+      <div className="kanban-gem-details">
+        <span>💎 {g.shape}</span>
+        <span>⚖️ {g.carat}ct</span>
+        <span>📐 {g.sizeL}×{g.sizeW}mm</span>
+      </div>
+      <div className="kanban-gem-meta">
+        <span>📍 {g.setting}</span>
+        <span className="kanban-gem-order">📋 {g.orderNo}</span>
+      </div>
+      {g.defectRemark && (
+        <div className="kanban-gem-defect">
+          <span>⚠️ {g.defectRemark}</span>
+        </div>
+      )}
+      {g.status === "需客户确认" && (
+        <button
+          className="kanban-defect-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            openDefectRemarkFromKanban(g.id);
+          }}
+        >
+          ✏️ 编辑备注
+        </button>
+      )}
+    </div>
+  );
+
+  const renderKanban = () => (
+    <>
+      <section className="kanban-metrics">
+        <article className="kanban-metric-card total">
+          <div className="kanban-metric-icon">📦</div>
+          <div>
+            <small>宝石总数</small>
+            <strong>{kanbanStats.totalCount}</strong>
+          </div>
+          <div className="kanban-metric-sub">⚖️ {kanbanStats.totalCarat.toFixed(2)} ct</div>
+        </article>
+        {KANBAN_STATUSES.map((status) => {
+          const data = kanbanStats.stats[status.key] || { count: 0, carat: 0 };
+          return (
+            <article key={status.key} className="kanban-metric-card" style={{ borderTopColor: status.color }}>
+              <div className="kanban-metric-icon">{status.icon}</div>
+              <div>
+                <small>{status.label}</small>
+                <strong style={{ color: status.color }}>{data.count}</strong>
+              </div>
+              <div className="kanban-metric-sub">⚖️ {data.carat.toFixed(2)} ct</div>
+            </article>
+          );
+        })}
+      </section>
+
+      <section className="kanban-board">
+        {KANBAN_STATUSES.map((status) => {
+          const gems = getGemsByStatus(status.key);
+          const data = kanbanStats.stats[status.key] || { count: 0, carat: 0 };
+          return (
+            <div
+              key={status.key}
+              className={`kanban-column ${kanbanDragOverStatus === status.key ? "drag-over" : ""}`}
+              onDragOver={(e) => handleKanbanDragOver(e, status.key)}
+              onDragLeave={handleKanbanDragLeave}
+              onDrop={(e) => handleKanbanDrop(e, status.key)}
+            >
+              <div className="kanban-column-header" style={{ borderColor: status.color }}>
+                <div className="kanban-column-title">
+                  <span className="kanban-column-icon">{status.icon}</span>
+                  <h3>{status.label}</h3>
+                  <span className="kanban-column-count">{data.count}</span>
+                </div>
+                <span className="kanban-column-carat">⚖️ {data.carat.toFixed(2)} ct</span>
+                {status.key === "需客户确认" && (
+                  <button
+                    className="kanban-add-defect-btn"
+                    onClick={() => {
+                      if (gems.length > 0) {
+                        openDefectRemarkFromKanban(gems[0].id);
+                      } else {
+                        alert("该状态下暂无宝石");
+                      }
+                    }}
+                  >
+                    + 备注
+                  </button>
+                )}
+              </div>
+              <div className="kanban-column-content">
+                {gems.length === 0 ? (
+                  <div className="kanban-empty">
+                    <span>拖拽宝石到此处</span>
+                  </div>
+                ) : (
+                  <div className="kanban-gem-list">
+                    {gems.map((g) => renderKanbanGemCard(g))}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </section>
+
+      {showKanbanDefectPanel && (
+        <div className="modal-overlay" onClick={closeKanbanDefectPanel}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <p>缺陷管理</p>
+                <h2>编辑缺陷备注</h2>
+              </div>
+              <button className="modal-close" onClick={closeKanbanDefectPanel}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="defect-form-body">
+                <div className="defect-form-left">
+                  <label className="defect-field">
+                    <span>选择宝石 *</span>
+                    <select value={kanbanDefectGemId} onChange={(e) => setKanbanDefectGemId(e.target.value)}>
+                      <option value="">-- 请选择宝石 --</option>
+                      {gemstones.map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.code} - {g.type} {g.shape} {g.carat}ct
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="defect-field">
+                    <span>缺陷类型 *</span>
+                    <div className="defect-type-chips">
+                      {DEFECT_TYPE_OPTIONS.map((dt) => (
+                        <button
+                          key={dt.label}
+                          className={`defect-type-chip ${selectedDefectTypes.includes(dt.label) ? "active" : ""}`}
+                          onClick={() => toggleDefectType(dt.label)}
+                          type="button"
+                        >
+                          <span className="dt-icon">{dt.icon}</span>
+                          {dt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </label>
+                  <label className="defect-field">
+                    <span>备注说明</span>
+                    <textarea
+                      placeholder="填写缺陷详细描述"
+                      value={defectRemarkText}
+                      onChange={(e) => setDefectRemarkText(e.target.value)}
+                      rows={3}
+                    />
+                  </label>
+                </div>
+                <div className="defect-form-right">
+                  {kanbanDefectGemId && (() => {
+                    const gem = gemstones.find((g) => g.id === kanbanDefectGemId);
+                    if (!gem) return null;
+                    return (
+                      <div className="defect-gem-preview">
+                        <h4>宝石信息预览</h4>
+                        <div className="preview-row"><span>编号</span><strong>{gem.code}</strong></div>
+                        <div className="preview-row"><span>种类</span><strong>{gem.type}</strong></div>
+                        <div className="preview-row"><span>形状</span><strong>{gem.shape}</strong></div>
+                        <div className="preview-row"><span>克拉</span><strong>{gem.carat}ct</strong></div>
+                        <div className="preview-row"><span>尺寸</span><strong>{gem.sizeL}×{gem.sizeW}mm</strong></div>
+                        <div className="preview-row"><span>净度</span><strong>{gem.clarity}</strong></div>
+                        <div className="preview-row"><span>颜色</span><strong>{gem.color}</strong></div>
+                        <div className="preview-row"><span>镶嵌位</span><strong>{gem.setting}</strong></div>
+                        <div className="preview-row"><span>状态</span><strong>{gem.status}</strong></div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+              <div className="defect-form-actions">
+                <button onClick={closeKanbanDefectPanel}>取消</button>
+                <button className="primary" onClick={handleSubmitKanbanDefect}>保存备注</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+
   const renderGemDetailDrawer = () => {
     if (!showGemDetailDrawer || !gemEditForm || !gemDetail) return null;
 
@@ -1587,6 +1915,12 @@ function App() {
           🛠️ 分拣工作台
         </button>
         <button
+          className={currentView === "kanban" ? "tab-btn active" : "tab-btn"}
+          onClick={() => setCurrentView("kanban")}
+        >
+          📊 分拣状态看板
+        </button>
+        <button
           className={currentView === "orderList" || currentView === "orderDetail" ? "tab-btn active" : "tab-btn"}
           onClick={() => {
             setCurrentView("orderList");
@@ -1598,6 +1932,7 @@ function App() {
       </section>
 
       {currentView === "workbench" && renderWorkbench()}
+      {currentView === "kanban" && renderKanban()}
       {currentView === "orderList" && renderOrderList()}
       {currentView === "orderDetail" && renderOrderDetail()}
       {renderGemDetailDrawer()}
