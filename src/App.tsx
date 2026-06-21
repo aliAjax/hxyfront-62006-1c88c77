@@ -237,15 +237,6 @@ function App() {
     return ids.map((id) => gemstones.find((g) => g.id === id)!).filter(Boolean);
   };
 
-  const getPositionForGem = (gemId: string): SettingPositionType | null => {
-    for (const [pos, ids] of Object.entries(gemAssignments)) {
-      if (ids.includes(gemId)) {
-        return pos as SettingPositionType;
-      }
-    }
-    return null;
-  };
-
   const assignGemToPosition = (gemId: string, position: SettingPositionType) => {
     const posConfig = SETTING_POSITIONS.find((p) => p.key === position);
     if (!posConfig) return;

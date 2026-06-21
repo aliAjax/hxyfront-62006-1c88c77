@@ -1192,6 +1192,24 @@ input {
   user-select: none;
 }
 
+.position-outer {
+  padding-top: 36px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  align-content: start;
+  gap: 6px;
+}
+
+.position-middle {
+  padding-top: 30px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  align-content: start;
+  gap: 6px;
+}
+
 .position-area:hover {
   transform: scale(1.02);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
@@ -1588,5 +1606,13 @@ input {
   .ring-backup {
     width: 80px;
     height: 80px;
+  }
+
+  .position-outer {
+    padding-top: 28px;
+  }
+
+  .position-middle {
+    padding-top: 24px;
   }
 }
