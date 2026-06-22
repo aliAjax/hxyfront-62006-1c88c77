@@ -116,6 +116,34 @@ const DEFECT_TYPE_OPTIONS = [
 const SHAPE_OPTIONS = ["圆形", "椭圆", "梨形", "祖母绿切", "心形", "马眼形"];
 const STATUS_OPTIONS: SortingStatus[] = ["待分拣", "待镶嵌", "需客户确认", "已完成"];
 
+const GEM_TYPE_OPTIONS = ["钻石", "红宝石", "蓝宝石", "祖母绿", "碧玺", "坦桑石", "尖晶石", "翡翠", "海蓝宝", "摩根石", "沙弗莱", "帕拉伊巴", "紫水晶", "黄水晶", "石榴石", "托帕石", "橄榄石"];
+const SETTING_OPTIONS = ["主石位", "围石A组", "围石B组", "围石C组", "副石位", "吊坠位", "备用石位", "耳钉位", "戒臂位"];
+
+interface ParsedGemstone {
+  lineIndex: number;
+  rawText: string;
+  code?: string;
+  type?: string;
+  shape?: string;
+  carat?: number;
+  sizeL?: number;
+  sizeW?: number;
+  setting?: string;
+  missingFields: string[];
+  hasSizeFormatError: boolean;
+  isDuplicate: boolean;
+}
+
+interface ParseResult {
+  totalLines: number;
+  successCount: number;
+  duplicateCodes: string[];
+  missingFieldItems: ParsedGemstone[];
+  sizeErrorItems: ParsedGemstone[];
+  parsedItems: ParsedGemstone[];
+  validItems: ParsedGemstone[];
+}
+
 type BatchStatusCounts = {
   sortingCount: number;
   pendingCount: number;
@@ -167,6 +195,134 @@ const initialFormData: BatchFormData = {
   remark: "",
 };
 
+const parseGemstoneText = (text: string, existingCodes: Set<string>): ParseResult => {
+  const lines = text.split("\n").filter((line) => line.trim() !== "");
+  const parsedItems: ParsedGemstone[] = [];
+  const codeCount = new Map<string, number>();
+
+  lines.forEach((line, index) => {
+    const trimmed = line.trim();
+    const parsed: ParsedGemstone = {
+      lineIndex: index,
+      rawText: trimmed,
+      missingFields: [],
+      hasSizeFormatError: false,
+      isDuplicate: false,
+    };
+
+    const codeMatch = trimmed.match(/\b([A-Z]{1,3}[-_\s]?\d{3,6})\b/i);
+    if (codeMatch) {
+      parsed.code = codeMatch[1].toUpperCase().replace(/[_\s]/g, "-");
+      if (codeCount.has(parsed.code)) {
+        codeCount.set(parsed.code, codeCount.get(parsed.code)! + 1);
+      } else {
+        codeCount.set(parsed.code, 1);
+      }
+    }
+
+    for (const type of GEM_TYPE_OPTIONS) {
+      if (trimmed.includes(type)) {
+        parsed.type = type;
+        break;
+      }
+    }
+
+    for (const shape of SHAPE_OPTIONS) {
+      if (trimmed.includes(shape)) {
+        parsed.shape = shape;
+        break;
+      }
+    }
+
+    const caratMatch = trimmed.match(/(\d+\.?\d*)\s*(?:ct|克拉|卡|CT|Ct)/i);
+    if (caratMatch) {
+      const caratVal = parseFloat(caratMatch[1]);
+      if (!isNaN(caratVal) && caratVal > 0) {
+        parsed.carat = caratVal;
+      }
+    }
+
+    const sizeMatch = trimmed.match(/(\d+\.?\d*)\s*[xX×*]\s*(\d+\.?\d*)\s*(?:mm|毫米)?/i);
+    if (sizeMatch) {
+      const sizeL = parseFloat(sizeMatch[1]);
+      const sizeW = parseFloat(sizeMatch[2]);
+      if (!isNaN(sizeL) && !isNaN(sizeW) && sizeL > 0 && sizeW > 0) {
+        parsed.sizeL = Math.max(sizeL, sizeW);
+        parsed.sizeW = Math.min(sizeL, sizeW);
+      } else {
+        parsed.hasSizeFormatError = true;
+      }
+    } else {
+      const singleSizeMatch = trimmed.match(/(\d+\.?\d*)\s*(?:mm|毫米)/i);
+      if (singleSizeMatch) {
+        const size = parseFloat(singleSizeMatch[1]);
+        if (!isNaN(size) && size > 0) {
+          parsed.sizeL = size;
+          parsed.sizeW = size;
+        }
+      }
+    }
+
+    for (const setting of SETTING_OPTIONS) {
+      if (trimmed.includes(setting)) {
+        parsed.setting = setting;
+        break;
+      }
+    }
+
+    if (!parsed.code) parsed.missingFields.push("宝石编号");
+    if (!parsed.type) parsed.missingFields.push("种类");
+    if (!parsed.shape) parsed.missingFields.push("形状");
+    if (parsed.carat === undefined) parsed.missingFields.push("克拉重量");
+    if (parsed.sizeL === undefined || parsed.sizeW === undefined) {
+      if (!parsed.hasSizeFormatError) {
+        parsed.missingFields.push("尺寸");
+      }
+    }
+    if (!parsed.setting) parsed.missingFields.push("镶嵌位置");
+
+    parsedItems.push(parsed);
+  });
+
+  const duplicateCodes: string[] = [];
+  codeCount.forEach((count, code) => {
+    if (count > 1) {
+      duplicateCodes.push(code);
+    }
+    if (existingCodes.has(code)) {
+      if (!duplicateCodes.includes(code)) {
+        duplicateCodes.push(code);
+      }
+    }
+  });
+
+  parsedItems.forEach((item) => {
+    if (item.code && duplicateCodes.includes(item.code)) {
+      item.isDuplicate = true;
+    }
+    if (item.code && existingCodes.has(item.code)) {
+      item.isDuplicate = true;
+    }
+  });
+
+  const validItems = parsedItems.filter(
+    (item) => !item.isDuplicate && item.missingFields.length === 0 && !item.hasSizeFormatError
+  );
+
+  const missingFieldItems = parsedItems.filter((item) => item.missingFields.length > 0 && !item.isDuplicate);
+  const sizeErrorItems = parsedItems.filter((item) => item.hasSizeFormatError && !item.isDuplicate);
+
+  return {
+    totalLines: lines.length,
+    successCount: validItems.length,
+    duplicateCodes,
+    missingFieldItems,
+    sizeErrorItems,
+    parsedItems,
+    validItems,
+  };
+};
+
 function App() {
   const [currentView, setCurrentView] = useState<ViewType>("workbench");
   const [selectedOrderNo, setSelectedOrderNo] = useState<string | null>(null);
@@ -211,6 +367,12 @@ function App() {
   const [kanbanDefectGemId, setKanbanDefectGemId] = useState<string>("");
   const [showExportSummary, setShowExportSummary] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
+
+  const [showImportPanel, setShowImportPanel] = useState(false);
+  const [importText, setImportText] = useState("");
+  const [parseResult, setParseResult] = useState<ParseResult | null>(null);
+  const [importBatchId, setImportBatchId] = useState("");
+  const [importOrderNo, setImportOrderNo] = useState("");
 
   const updateGemstone = (gemId: string, updated: Partial<Gemstone>) => {
     setGemstones((prev) => prev.map((g) => (g.id === gemId ? { ...g, ...updated } : g)));
@@ -566,6 +728,68 @@ function App() {
     });
   };
 
+  const existingGemCodes = useMemo(() => {
+    const codes = new Set<string>();
+    gemstones.forEach((g) => codes.add(g.code));
+    return codes;
+  }, [gemstones]);
+
+  const handleParseImportText = () => {
+    if (!importText.trim()) {
+      alert("请输入要解析的宝石清单文本");
+      return;
+    }
+    const result = parseGemstoneText(importText, existingGemCodes);
+    setParseResult(result);
+  };
+
+  const handleConfirmImport = () => {
+    if (!parseResult || parseResult.validItems.length === 0) {
+      alert("没有可导入的有效宝石记录");
+      return;
+    }
+
+    const targetBatch = importBatchId
+      ? batches.find((b) => b.id === importBatchId)
+      : batches[0];
+    const targetOrderNo = importOrderNo || targetBatch?.orderNo || "";
+
+    const newGems: Gemstone[] = parseResult.validItems.map((item, index) => ({
+      id: `g-import-${Date.now()}-${index}`,
+      code: item.code!,
+      type: item.type!,
+      shape: item.shape!,
+      carat: item.carat!,
+      sizeL: item.sizeL!,
+      sizeW: item.sizeW!,
+      setting: item.setting!,
+      clarity: "VS1",
+      color: "未标注",
+      cut: "未标注",
+      status: "待分拣",
+      batchId: targetBatch?.id || "batch-1",
+      orderNo: targetOrderNo,
+      defectRemark: "",
+    }));
+
+    setGemstones((prev) => [...prev, ...newGems]);
+
+    setShowImportPanel(false);
+    setImportText("");
+    setParseResult(null);
+    setImportBatchId("");
+    setImportOrderNo("");
+
+    alert(`成功导入 ${newGems.length} 颗宝石记录`);
+  };
+
+  const resetImportForm = () => {
+    setImportText("");
+    setParseResult(null);
+    setImportBatchId("");
+    setImportOrderNo("");
+  };
+
   const filteredGemstones = useMemo(() => {
     return gemstones.filter((g) => {
       if (selectedShapes.length > 0 && !selectedShapes.includes(g.shape)) return false;
@@ -739,6 +963,194 @@ function App() {
             <strong>{[batches.length, totalPending || 14, totalDefect || 7, totalCarat.toFixed(2)][index]}</strong>
           </article>
         ))}
+      </section>
+
+      <section className="panel import-section">
+        <div className="heading">
+          <div>
+            <p>批量导入</p>
+            <h2>分拣数据导入预检</h2>
+          </div>
+          <button className="primary" onClick={() => setShowImportPanel(!showImportPanel)}>
+            {showImportPanel ? "收起" : "+ 导入宝石清单"}
+          </button>
+        </div>
+
+        {showImportPanel && (
+          <div className="import-panel">
+            <div className="import-form">
+              <div className="field-grid">
+                <label>
+                  <span>目标批次</span>
+                  <select value={importBatchId} onChange={(e) => setImportBatchId(e.target.value)}>
+                    <option value="">-- 选择批次（默认第一个）--</option>
+                    {batches.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.batchNo} - {b.customerName}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>订单号（可选）</span>
+                  <input
+                    placeholder="如不填写则使用批次的订单号"
+                    value={importOrderNo}
+                    onChange={(e) => setImportOrderNo(e.target.value)}
+                  />
+                </label>
+              </div>
+              <label className="full-width import-textarea-label">
+                <span>粘贴宝石清单文本</span>
+                <textarea
+                  className="import-textarea"
+                  placeholder="粘贴多行宝石清单，每行一颗宝石。支持格式示例：\nST-3001 钻石 圆形 0.5ct 5.0x5.0mm 主石位\nST-3002 蓝宝石 椭圆 1.2ct 7x5mm 围石A组"
+                  value={importText}
+                  onChange={(e) => setImportText(e.target.value)}
+                  rows={6}
+                />
+              </label>
+              <div className="import-form-actions">
+                <button onClick={resetImportForm}>清空</button>
+                <button className="primary" onClick={handleParseImportText}>
+                  🔍 解析预检
+                </button>
+              </div>
+            </div>
+
+            {parseResult && (
+              <div className="import-preview">
+                <div className="import-preview-header">
+                  <h3>预检结果</h3>
+                  <span className="result-count">共 {parseResult.totalLines} 行数据</span>
+                </div>
+
+                <div className="import-summary-cards">
+                  <article className="summary-card import-success">
+                    <div className="summary-icon">✅</div>
+                    <div>
+                      <small>识别成功</small>
+                      <strong>{parseResult.successCount}</strong>
+                    </div>
+                  </article>
+                  <article className="summary-card import-duplicate">
+                    <div className="summary-icon">⚠️</div>
+                    <div>
+                      <small>疑似重复</small>
+                      <strong>{parseResult.duplicateCodes.length}</strong>
+                    </div>
+                  </article>
+                  <article className="summary-card import-missing">
+                    <div className="summary-icon">📋</div>
+                    <div>
+                      <small>缺失字段</small>
+                      <strong>{parseResult.missingFieldItems.length}</strong>
+                    </div>
+                  </article>
+                  <article className="summary-card import-size-error">
+                    <div className="summary-icon">📐</div>
+                    <div>
+                      <small>尺寸格式异常</small>
+                      <strong>{parseResult.sizeErrorItems.length}</strong>
+                    </div>
+                  </article>
+                </div>
+
+                {parseResult.validItems.length > 0 && (
+                  <div className="import-detail-section">
+                    <h4 className="import-detail-title">✅ 可导入记录 ({parseResult.validItems.length})</h4>
+                    <div className="import-detail-list">
+                      {parseResult.validItems.map((item) => (
+                        <div key={item.lineIndex} className="import-detail-item success">
+                          <div className="import-item-main">
+                            <span className="import-item-code">{item.code}</span>
+                            <span className="import-item-type">{item.type}</span>
+                            <span className="import-item-shape">{item.shape}</span>
+                          </div>
+                          <div className="import-item-sub">
+                            <span>⚖️ {item.carat}ct</span>
+                            <span>📐 {item.sizeL}×{item.sizeW}mm</span>
+                            <span>📍 {item.setting}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {parseResult.duplicateCodes.length > 0 && (
+                  <div className="import-detail-section">
+                    <h4 className="import-detail-title warning">⚠️ 疑似重复编号 ({parseResult.duplicateCodes.length})</h4>
+                    <div className="import-detail-list">
+                      {parseResult.parsedItems
+                        .filter((item) => item.isDuplicate)
+                        .map((item) => (
+                          <div key={item.lineIndex} className="import-detail-item warning">
+                            <div className="import-item-main">
+                              <span className="import-item-code">{item.code || "未知编号"}</span>
+                              <span className="import-item-tag">重复</span>
+                            </div>
+                            <div className="import-item-sub">
+                              <span>原行内容：{item.rawText}</span>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {parseResult.missingFieldItems.length > 0 && (
+                  <div className="import-detail-section">
+                    <h4 className="import-detail-title info">📋 缺失字段 ({parseResult.missingFieldItems.length})</h4>
+                    <div className="import-detail-list">
+                      {parseResult.missingFieldItems.map((item) => (
+                        <div key={item.lineIndex} className="import-detail-item info">
+                          <div className="import-item-main">
+                            <span className="import-item-code">{item.code || "第" + (item.lineIndex + 1) + "行"}</span>
+                            <span className="import-item-tag info">缺失: {item.missingFields.join("、")}</span>
+                          </div>
+                          <div className="import-item-sub">
+                            <span>原行内容：{item.rawText}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {parseResult.sizeErrorItems.length > 0 && (
+                  <div className="import-detail-section">
+                    <h4 className="import-detail-title error">📐 尺寸格式异常 ({parseResult.sizeErrorItems.length})</h4>
+                    <div className="import-detail-list">
+                      {parseResult.sizeErrorItems.map((item) => (
+                        <div key={item.lineIndex} className="import-detail-item error">
+                          <div className="import-item-main">
+                            <span className="import-item-code">{item.code || "第" + (item.lineIndex + 1) + "行"}</span>
+                            <span className="import-item-tag error">尺寸格式错误</span>
+                          </div>
+                          <div className="import-item-sub">
+                            <span>原行内容：{item.rawText}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="import-confirm-actions">
+                  <button onClick={resetImportForm}>重新输入</button>
+                  <button
+                    className="primary"
+                    onClick={handleConfirmImport}
+                    disabled={parseResult.validItems.length === 0}
+                  >
+                    ✅ 确认导入 {parseResult.validItems.length} 条记录
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       <section className="batch-section">

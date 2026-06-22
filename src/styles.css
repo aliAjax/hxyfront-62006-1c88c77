@@ -2832,3 +2832,315 @@ select.drawer-field-input {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+.import-section {
+  margin-bottom: 18px;
+}
+
+.import-panel {
+  display: grid;
+  gap: 24px;
+}
+
+.import-form {
+  padding: 20px;
+  background: #f8fafc;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  display: grid;
+  gap: 16px;
+}
+
+.import-textarea-label {
+  display: grid;
+  gap: 8px;
+}
+
+.import-textarea {
+  width: 100%;
+  min-height: 120px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  padding: 12px;
+  font: inherit;
+  color: #172033;
+  resize: vertical;
+  background: #ffffff;
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.import-textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent);
+}
+
+.import-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.import-form-actions button {
+  min-height: 42px;
+  padding: 0 18px;
+}
+
+.import-preview {
+  display: grid;
+  gap: 20px;
+  padding: 20px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.import-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.import-preview-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #172033;
+}
+
+.import-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.summary-card.import-success {
+  border-top: 4px solid var(--secondary);
+}
+.summary-card.import-success .summary-icon {
+  background: color-mix(in srgb, var(--secondary) 14%, #ffffff);
+}
+.summary-card.import-success strong {
+  color: var(--secondary);
+}
+
+.summary-card.import-duplicate {
+  border-top: 4px solid #f59e0b;
+}
+.summary-card.import-duplicate .summary-icon {
+  background: color-mix(in srgb, #f59e0b 14%, #ffffff);
+}
+.summary-card.import-duplicate strong {
+  color: #b45309;
+}
+
+.summary-card.import-missing {
+  border-top: 4px solid #64748b;
+}
+.summary-card.import-missing .summary-icon {
+  background: color-mix(in srgb, #64748b 14%, #ffffff);
+}
+.summary-card.import-missing strong {
+  color: #64748b;
+}
+
+.summary-card.import-size-error {
+  border-top: 4px solid var(--primary);
+}
+.summary-card.import-size-error .summary-icon {
+  background: color-mix(in srgb, var(--primary) 14%, #ffffff);
+}
+.summary-card.import-size-error strong {
+  color: var(--primary);
+}
+
+.import-detail-section {
+  display: grid;
+  gap: 8px;
+}
+
+.import-detail-title {
+  margin: 0;
+  font-size: 14px;
+  color: #172033;
+  font-weight: 600;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.import-detail-title.warning {
+  color: #b45309;
+  border-bottom-color: color-mix(in srgb, #f59e0b 30%, var(--border));
+}
+
+.import-detail-title.info {
+  color: #64748b;
+}
+
+.import-detail-title.error {
+  color: var(--primary);
+  border-bottom-color: color-mix(in srgb, var(--primary) 30%, var(--border));
+}
+
+.import-detail-list {
+  display: grid;
+  gap: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.import-detail-item {
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+}
+
+.import-detail-item.success {
+  border-left: 3px solid var(--secondary);
+  background: color-mix(in srgb, var(--secondary) 4%, #f8fafc);
+}
+
+.import-detail-item.warning {
+  border-left: 3px solid #f59e0b;
+  background: color-mix(in srgb, #f59e0b 4%, #f8fafc);
+}
+
+.import-detail-item.info {
+  border-left: 3px solid #64748b;
+}
+
+.import-detail-item.error {
+  border-left: 3px solid var(--primary);
+  background: color-mix(in srgb, var(--primary) 4%, #f8fafc);
+}
+
+.import-item-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.import-item-code {
+  font-weight: 700;
+  color: #172033;
+  font-size: 14px;
+}
+
+.import-item-type {
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, #ffffff);
+  border-radius: 999px;
+}
+
+.import-item-shape {
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--secondary);
+  background: color-mix(in srgb, var(--secondary) 12%, #ffffff);
+  border-radius: 999px;
+}
+
+.import-item-tag {
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #b45309;
+  background: color-mix(in srgb, #f59e0b 14%, #ffffff);
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.import-item-tag.info {
+  color: #64748b;
+  background: color-mix(in srgb, #64748b 14%, #ffffff);
+}
+
+.import-item-tag.error {
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, #ffffff);
+}
+
+.import-item-sub {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.import-item-sub span {
+  white-space: nowrap;
+}
+
+.import-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.import-confirm-actions button {
+  min-height: 42px;
+  padding: 0 18px;
+}
+
+.import-confirm-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.import-form select {
+  width: 100%;
+  min-height: 42px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  padding: 0 12px;
+  font: inherit;
+  background: #ffffff;
+  color: #172033;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+.import-form select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent);
+}
+
+@media (max-width: 860px) {
+  .import-summary-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .import-summary-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .import-form-actions,
+  .import-confirm-actions {
+    flex-direction: column;
+  }
+
+  .import-form-actions button,
+  .import-confirm-actions button {
+    width: 100%;
+  }
+}
