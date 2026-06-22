@@ -253,12 +253,17 @@ const parseGemstoneText = (text: string, existingCodes: Set<string>): ParseResul
         parsed.hasSizeFormatError = true;
       }
     } else {
-      const singleSizeMatch = trimmed.match(/(\d+\.?\d*)\s*(?:mm|毫米)/i);
-      if (singleSizeMatch) {
-        const size = parseFloat(singleSizeMatch[1]);
-        if (!isNaN(size) && size > 0) {
-          parsed.sizeL = size;
-          parsed.sizeW = size;
+      const sizePatternMatch = trimmed.match(/(\d+\.?\d*)\s*[xX×*]/i);
+      if (sizePatternMatch) {
+        parsed.hasSizeFormatError = true;
+      } else {
+        const singleSizeMatch = trimmed.match(/(\d+\.?\d*)\s*(?:mm|毫米)/i);
+        if (singleSizeMatch) {
+          const size = parseFloat(singleSizeMatch[1]);
+          if (!isNaN(size) && size > 0) {
+            parsed.sizeL = size;
+            parsed.sizeW = size;
+          }
         }
       }
     }
