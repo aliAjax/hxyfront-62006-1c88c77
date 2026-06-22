@@ -47,6 +47,7 @@ interface ReviewIssue {
   position?: string;
   action?: string;
   resolved: boolean;
+  manuallyResolved: boolean;
 }
 
 interface PositionReviewItem {
@@ -550,6 +551,7 @@ function App() {
         position: "主石位",
         action: "请在主石位分配一颗主石",
         resolved: false,
+        manuallyResolved: false,
       });
     } else if (mainStoneGems.length > 1) {
       issues.push({
@@ -562,6 +564,7 @@ function App() {
         position: "主石位",
         action: "请移除多余的主石，仅保留一颗",
         resolved: false,
+        manuallyResolved: false,
       });
     }
 
@@ -580,6 +583,7 @@ function App() {
           position: pos,
           action: `请补充 ${requiredCount - posGems.length} 颗宝石到${pos}`,
           resolved: false,
+          manuallyResolved: false,
         });
       }
     });
@@ -595,6 +599,7 @@ function App() {
         gemIds: needConfirmGems.map((g) => g.id),
         action: "请联系客户确认后更新状态为\"已完成\"或\"待镶嵌\"",
         resolved: false,
+        manuallyResolved: false,
       });
     }
 
@@ -609,6 +614,7 @@ function App() {
         gemIds: notCompletedGems.map((g) => g.id),
         action: "请完成所有宝石的分拣流程",
         resolved: false,
+        manuallyResolved: false,
       });
     }
 
@@ -682,10 +688,16 @@ function App() {
 
   const resolveIssue = (issueId: string) => {
     if (!reviewResult) return;
+    const confirmed = window.confirm(
+      "此操作仅记录您确认已处理该问题，不能替代真实修复。\n\n" +
+        "复核通过前系统会重新校验数据，请确保问题已实际修复。\n\n" +
+        "是否继续标记？"
+    );
+    if (!confirmed) return;
     setReviewResult({
       ...reviewResult,
       issues: reviewResult.issues.map((i) =>
-        i.id === issueId ? { ...i, resolved: true } : i
+        i.id === issueId ? { ...i, manuallyResolved: true } : i
       ),
     });
   };
@@ -2570,19 +2582,54 @@ function App() {
     updateBatchReviewStatus(batchId, "复核中", false);
   };
 
+  const handleRecheckReview = () => {
+    if (!selectedReviewBatchId || !reviewResult) return;
+    const oldManuallyResolved = new Map(
+      reviewResult.issues.filter((i) => i.manuallyResolved).map((i) => [`${i.type}-${i.position || ""}`, true])
+    );
+    const freshResult = generateReviewChecklist(selectedReviewBatchId);
+    freshResult.issues = freshResult.issues.map((issue) => ({
+      ...issue,
+      manuallyResolved: oldManuallyResolved.has(`${issue.type}-${issue.position || ""}`),
+    }));
+    setReviewResult(freshResult);
+    const resolvedCount = freshResult.issues.filter((i) => !i.resolved).length;
+    const manuallyCount = freshResult.issues.filter((i) => i.manuallyResolved && !i.resolved).length;
+    if (resolvedCount === 0) {
+      alert("✅ 所有问题已真实消除！可以进行复核通过。");
+    } else {
+      alert(`重新校验完成。\n\n仍有 ${resolvedCount} 个问题未真实消除${manuallyCount > 0 ? `（其中 ${manuallyCount} 个已标记处理）` : ""}。`);
+    }
+  };
+
   const handlePassReview = () => {
-    if (!reviewResult) return;
-    const hasUnresolvedErrors = reviewResult.issues.some((i) => i.severity === "error" && !i.resolved);
-    if (hasUnresolvedErrors) {
-      alert("存在未解决的严重问题，无法通过复核！");
+    if (!reviewResult || !selectedReviewBatchId) return;
+    const freshResult = generateReviewChecklist(selectedReviewBatchId);
+    const hasRealErrors = freshResult.issues.some((i) => i.severity === "error");
+    const hasRealWarnings = freshResult.issues.some((i) => i.severity === "warning");
+    if (hasRealErrors) {
+      const errorList = freshResult.issues
+        .filter((i) => i.severity === "error")
+        .map((i) => `  • ${i.title}`)
+        .join("\n");
+      alert(`以下问题未真实消除，无法通过复核：\n\n${errorList}\n\n请先实际修复问题后再重试。`);
+      setReviewResult(freshResult);
       return;
     }
-    const canDeliver = reviewResult.issues.every((i) => i.resolved || i.severity !== "error");
-    updateBatchReviewStatus(reviewResult.batchId, "复核通过", canDeliver, reviewRemark);
+    const canDeliver = !hasRealErrors && !hasRealWarnings;
+    if (!canDeliver) {
+      const confirmResult = window.confirm(
+        "存在警告级别的问题未完全消除。\n\n" +
+          freshResult.issues.filter((i) => i.severity === "warning").map((i) => `  • ${i.title}`).join("\n") +
+          "\n\n是否确认标记为复核通过？（注意：此批次将不会标记为可交付）"
+      );
+      if (!confirmResult) return;
+    }
+    updateBatchReviewStatus(freshResult.batchId, "复核通过", canDeliver, reviewRemark);
     setShowReviewResult(false);
     setReviewResult(null);
     setSelectedReviewBatchId(null);
-    alert("复核已通过！");
+    alert(canDeliver ? "复核已通过！批次已标记为可交付。" : "复核已通过，但批次因存在警告问题暂不可交付。");
   };
 
   const handleFailReview = () => {
@@ -2835,32 +2882,38 @@ function App() {
                 {reviewResult.issues.length > 0 && (
                   <div className="review-issues-section">
                     <h3 className="section-title">
-                      ⚠️ 问题列表 ({reviewResult.issues.filter((i) => !i.resolved).length} 待解决)
+                      ⚠️ 问题列表 ({reviewResult.issues.filter((i) => !i.resolved).length} 未真实消除, {reviewResult.issues.filter((i) => i.manuallyResolved && !i.resolved).length} 已标记处理)
                     </h3>
                     <div className="issues-list">
                       {reviewResult.issues.map((issue) => (
                         <div
                           key={issue.id}
-                          className={`issue-card severity-${issue.severity} ${issue.resolved ? "resolved" : ""}`}
+                          className={`issue-card severity-${issue.severity} ${issue.resolved ? "resolved" : ""} ${issue.manuallyResolved && !issue.resolved ? "manually-resolved" : ""}`}
                         >
                           <div className="issue-header">
                             <div className="issue-title-row">
                               {renderSeverityTag(issue.severity)}
                               <h4>{issue.title}</h4>
-                              {issue.resolved && <span className="resolved-badge">已解决</span>}
+                              {issue.resolved && <span className="resolved-badge">已真实消除</span>}
+                              {issue.manuallyResolved && !issue.resolved && <span className="manually-resolved-badge">已标记处理</span>}
                             </div>
                             <button
-                              className={`resolve-btn ${issue.resolved ? "resolved" : ""}`}
+                              className={`resolve-btn ${issue.manuallyResolved ? "resolved" : ""}`}
                               onClick={() => resolveIssue(issue.id)}
-                              disabled={issue.resolved}
+                              disabled={issue.manuallyResolved}
                             >
-                              {issue.resolved ? "✓ 已解决" : "标记解决"}
+                              {issue.manuallyResolved ? "✓ 已标记" : "标记已处理"}
                             </button>
                           </div>
                           <p className="issue-description">{issue.description}</p>
                           {issue.action && (
                             <p className="issue-action">
                               <strong>操作建议：</strong>{issue.action}
+                            </p>
+                          )}
+                          {!issue.resolved && (
+                            <p className="issue-gate-note">
+                              <strong>🔒 门禁提示：</strong>此问题必须真实修复，仅标记处理无法通过复核。
                             </p>
                           )}
                           {issue.gemIds.length > 0 && (
@@ -2901,15 +2954,17 @@ function App() {
 
               <div className="review-result-footer">
                 <button onClick={() => setShowReviewResult(false)}>取消</button>
+                <button className="recheck-btn" onClick={handleRecheckReview}>
+                  🔄 重新校验
+                </button>
                 <button className="fail-btn" onClick={handleFailReview}>
                   ❌ 复核不通过
                 </button>
                 <button
                   className="primary pass-btn"
                   onClick={handlePassReview}
-                  disabled={reviewResult.issues.some((i) => i.severity === "error" && !i.resolved)}
                 >
-                  ✅ 复核通过
+                  ✅ 复核通过（系统自动校验）
                 </button>
               </div>
             </div>
