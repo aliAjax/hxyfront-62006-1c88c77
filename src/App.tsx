@@ -452,6 +452,8 @@ function App() {
   const [sizeMax, setSizeMax] = useState("");
   const [caratMin, setCaratMin] = useState("");
   const [caratMax, setCaratMax] = useState("");
+  const [selectedStatuses, setSelectedStatuses] = useState<SortingStatus[]>([]);
+  const [selectedSettings, setSelectedSettings] = useState<string[]>([]);
 
   const [kanbanDraggedGemId, setKanbanDraggedGemId] = useState<string | null>(null);
   const [kanbanDragOverStatus, setKanbanDragOverStatus] = useState<SortingStatus | null>(null);
@@ -902,15 +904,25 @@ function App() {
     setSelectedShapes((prev) => (prev.includes(shape) ? prev.filter((s) => s !== shape) : [...prev, shape]));
   };
 
+  const toggleStatus = (status: SortingStatus) => {
+    setSelectedStatuses((prev) => (prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status]));
+  };
+
+  const toggleSetting = (setting: string) => {
+    setSelectedSettings((prev) => (prev.includes(setting) ? prev.filter((s) => s !== setting) : [...prev, setting]));
+  };
+
   const resetFilters = () => {
     setSelectedShapes([]);
     setSizeMin("");
     setSizeMax("");
     setCaratMin("");
     setCaratMax("");
+    setSelectedStatuses([]);
+    setSelectedSettings([]);
   };
 
-  const hasActiveFilters = selectedShapes.length > 0 || sizeMin !== "" || sizeMax !== "" || caratMin !== "" || caratMax !== "";
+  const hasActiveFilters = selectedShapes.length > 0 || sizeMin !== "" || sizeMax !== "" || caratMin !== "" || caratMax !== "" || selectedStatuses.length > 0 || selectedSettings.length > 0;
 
   const generateExportSummaryText = () => {
     const gems = hasActiveFilters ? filteredGemstones : gemstones;
@@ -937,6 +949,8 @@ function App() {
       if (selectedShapes.length > 0) lines.push(`  形状：${selectedShapes.join("、")}`);
       if (sizeMin !== "" || sizeMax !== "") lines.push(`  尺寸：${sizeMin || "0"} ~ ${sizeMax || "∞"} mm`);
       if (caratMin !== "" || caratMax !== "") lines.push(`  克拉：${caratMin || "0"} ~ ${caratMax || "∞"} ct`);
+      if (selectedStatuses.length > 0) lines.push(`  分拣状态：${selectedStatuses.join("、")}`);
+      if (selectedSettings.length > 0) lines.push(`  镶嵌位置：${selectedSettings.join("、")}`);
       lines.push("");
     }
 
@@ -1094,9 +1108,11 @@ function App() {
         const max = parseFloat(caratMax);
         if (!isNaN(max) && g.carat > max) return false;
       }
+      if (selectedStatuses.length > 0 && !selectedStatuses.includes(g.status)) return false;
+      if (selectedSettings.length > 0 && !selectedSettings.includes(g.setting)) return false;
       return true;
     });
-  }, [gemstones, selectedShapes, sizeMin, sizeMax, caratMin, caratMax]);
+  }, [gemstones, selectedShapes, sizeMin, sizeMax, caratMin, caratMax, selectedStatuses, selectedSettings]);
 
   const displayedGemstones = hasActiveFilters ? filteredGemstones : gemstones;
 
@@ -1637,6 +1653,26 @@ function App() {
               <input type="number" placeholder="最小" value={caratMin} min="0" step="0.01" onChange={(e) => setCaratMin(e.target.value)} />
               <span className="range-sep">—</span>
               <input type="number" placeholder="最大" value={caratMax} min="0" step="0.01" onChange={(e) => setCaratMax(e.target.value)} />
+            </div>
+          </div>
+          <div className="filter-group">
+            <h3>分拣状态</h3>
+            <div className="chips">
+              {STATUS_OPTIONS.map((status) => (
+                <button key={status} className={selectedStatuses.includes(status) ? "active" : ""} onClick={() => toggleStatus(status)}>
+                  {status}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="filter-group">
+            <h3>镶嵌位置</h3>
+            <div className="chips">
+              {SETTING_OPTIONS.map((setting) => (
+                <button key={setting} className={selectedSettings.includes(setting) ? "active" : ""} onClick={() => toggleSetting(setting)}>
+                  {setting}
+                </button>
+              ))}
             </div>
           </div>
           {hasActiveFilters && (
