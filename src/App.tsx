@@ -2,8 +2,11 @@ import { useState, useMemo } from "react";
 import "./styles.css";
 
 type SettingPositionType = "主石位" | "围石A组" | "围石B组" | "备用石位";
-type ViewType = "workbench" | "orderList" | "orderDetail" | "kanban";
+type ViewType = "workbench" | "orderList" | "orderDetail" | "kanban" | "review";
 type SortingStatus = "待分拣" | "待镶嵌" | "需客户确认" | "已完成";
+type ReviewStatus = "未复核" | "复核中" | "复核通过" | "复核不通过";
+type IssueSeverity = "error" | "warning" | "info";
+type IssueType = "main_stone_duplicate" | "main_stone_missing" | "surround_stone_insufficient" | "customer_confirm_pending" | "stone_not_completed" | "position_mismatch";
 
 interface SettingPosition {
   key: SettingPositionType;
@@ -28,6 +31,46 @@ interface Batch {
   expectedDate: string;
   remark: string;
   createdAt: string;
+  reviewStatus?: ReviewStatus;
+  reviewRemark?: string;
+  reviewedAt?: string;
+  isDeliverable?: boolean;
+}
+
+interface ReviewIssue {
+  id: string;
+  type: IssueType;
+  severity: IssueSeverity;
+  title: string;
+  description: string;
+  gemIds: string[];
+  position?: string;
+  action?: string;
+  resolved: boolean;
+}
+
+interface PositionReviewItem {
+  position: string;
+  requiredCount: number;
+  actualCount: number;
+  gems: Gemstone[];
+  status: "ok" | "warning" | "error";
+}
+
+interface BatchReviewResult {
+  batchId: string;
+  batchNo: string;
+  orderNo: string;
+  customerName: string;
+  reviewedAt: string;
+  totalGems: number;
+  completedGems: number;
+  pendingGems: number;
+  needConfirmGems: number;
+  positions: PositionReviewItem[];
+  issues: ReviewIssue[];
+  canDeliver: boolean;
+  pass: boolean;
 }
 
 interface BatchFormData {
@@ -179,12 +222,50 @@ const initialGemstones: Gemstone[] = [
   { id: "g18", code: "ST-2248", type: "钻石", shape: "椭圆", carat: 0.15, sizeL: 4.0, sizeW: 3.0, setting: "围石C组", clarity: "VS1", color: "F", cut: "优良", status: "已完成", batchId: "batch-5", orderNo: "ORD-77305", defectRemark: "" },
 ];
 
+interface OrderRequirement {
+  orderNo: string;
+  positionRequirements: Record<string, number>;
+}
+
+const ORDER_REQUIREMENTS: OrderRequirement[] = [
+  {
+    orderNo: "ORD-88201",
+    positionRequirements: {
+      "主石位": 1,
+      "围石A组": 8,
+      "围石B组": 12,
+      "副石位": 2,
+      "吊坠位": 1,
+    },
+  },
+  {
+    orderNo: "ORD-99102",
+    positionRequirements: {
+      "主石位": 1,
+      "围石A组": 6,
+      "围石B组": 10,
+      "围石C组": 4,
+      "副石位": 1,
+    },
+  },
+  {
+    orderNo: "ORD-77305",
+    positionRequirements: {
+      "主石位": 1,
+      "围石A组": 4,
+      "围石B组": 8,
+      "围石C组": 6,
+      "吊坠位": 1,
+    },
+  },
+];
+
 const initialBatches: Batch[] = [
-  { id: "batch-1", batchNo: "BATCH-202606001", orderNo: "ORD-88201", customerName: "周大福珠宝", expectedDate: "2026-07-15", remark: "高端定制婚戒系列", createdAt: "2026-06-18 10:30:00" },
-  { id: "batch-2", batchNo: "BATCH-202606002", orderNo: "ORD-88201", customerName: "周大福珠宝", expectedDate: "2026-07-15", remark: "配套吊坠与副石", createdAt: "2026-06-18 11:15:00" },
-  { id: "batch-3", batchNo: "BATCH-202606003", orderNo: "ORD-99102", customerName: "卡地亚精品", expectedDate: "2026-07-20", remark: "高端彩色宝石系列", createdAt: "2026-06-19 09:00:00" },
-  { id: "batch-4", batchNo: "BATCH-202606004", orderNo: "ORD-99102", customerName: "卡地亚精品", expectedDate: "2026-07-20", remark: "配钻补充批次", createdAt: "2026-06-19 14:20:00" },
-  { id: "batch-5", batchNo: "BATCH-202606005", orderNo: "ORD-77305", customerName: "蒂芙尼工坊", expectedDate: "2026-07-10", remark: "蓝宝石珍藏系列", createdAt: "2026-06-20 08:45:00" },
+  { id: "batch-1", batchNo: "BATCH-202606001", orderNo: "ORD-88201", customerName: "周大福珠宝", expectedDate: "2026-07-15", remark: "高端定制婚戒系列", createdAt: "2026-06-18 10:30:00", reviewStatus: "未复核", isDeliverable: false },
+  { id: "batch-2", batchNo: "BATCH-202606002", orderNo: "ORD-88201", customerName: "周大福珠宝", expectedDate: "2026-07-15", remark: "配套吊坠与副石", createdAt: "2026-06-18 11:15:00", reviewStatus: "未复核", isDeliverable: false },
+  { id: "batch-3", batchNo: "BATCH-202606003", orderNo: "ORD-99102", customerName: "卡地亚精品", expectedDate: "2026-07-20", remark: "高端彩色宝石系列", createdAt: "2026-06-19 09:00:00", reviewStatus: "未复核", isDeliverable: false },
+  { id: "batch-4", batchNo: "BATCH-202606004", orderNo: "ORD-99102", customerName: "卡地亚精品", expectedDate: "2026-07-20", remark: "配钻补充批次", createdAt: "2026-06-19 14:20:00", reviewStatus: "未复核", isDeliverable: false },
+  { id: "batch-5", batchNo: "BATCH-202606005", orderNo: "ORD-77305", customerName: "蒂芙尼工坊", expectedDate: "2026-07-10", remark: "蓝宝石珍藏系列", createdAt: "2026-06-20 08:45:00", reviewStatus: "未复核", isDeliverable: false },
 ];
 
 const initialFormData: BatchFormData = {
@@ -337,10 +418,15 @@ function App() {
   const [gemEditForm, setGemEditForm] = useState<GemstoneEditForm | null>(null);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
 
-  const [batches] = useState<Batch[]>(initialBatches);
+  const [batches, setBatches] = useState<Batch[]>(initialBatches);
   const [gemstones, setGemstones] = useState<Gemstone[]>(initialGemstones);
   const [formData, setFormData] = useState<BatchFormData>(initialFormData);
   const [showBatchForm, setShowBatchForm] = useState(false);
+
+  const [selectedReviewBatchId, setSelectedReviewBatchId] = useState<string | null>(null);
+  const [reviewResult, setReviewResult] = useState<BatchReviewResult | null>(null);
+  const [showReviewResult, setShowReviewResult] = useState(false);
+  const [reviewRemark, setReviewRemark] = useState("");
 
   const [gemAssignments, setGemAssignments] = useState<Record<SettingPositionType, string[]>>({
     "主石位": ["g4"],
@@ -420,6 +506,188 @@ function App() {
     }
 
     return errors;
+  };
+
+  const getOrderRequirement = (orderNo: string): OrderRequirement | undefined => {
+    return ORDER_REQUIREMENTS.find((r) => r.orderNo === orderNo);
+  };
+
+  const getBatchGems = (batchId: string): Gemstone[] => {
+    return gemstones.filter((g) => g.batchId === batchId);
+  };
+
+  const groupGemsBySetting = (gems: Gemstone[]): Map<string, Gemstone[]> => {
+    const grouped = new Map<string, Gemstone[]>();
+    gems.forEach((g) => {
+      if (!grouped.has(g.setting)) grouped.set(g.setting, []);
+      grouped.get(g.setting)!.push(g);
+    });
+    return grouped;
+  };
+
+  const generateReviewChecklist = (batchId: string): BatchReviewResult => {
+    const batch = batches.find((b) => b.id === batchId);
+    if (!batch) {
+      throw new Error("批次不存在");
+    }
+
+    const batchGems = getBatchGems(batchId);
+    const groupedBySetting = groupGemsBySetting(batchGems);
+    const orderReq = getOrderRequirement(batch.orderNo);
+
+    const issues: ReviewIssue[] = [];
+    const positions: PositionReviewItem[] = [];
+
+    const mainStoneGems = groupedBySetting.get("主石位") || [];
+    if (mainStoneGems.length === 0) {
+      issues.push({
+        id: `issue-${Date.now()}-1`,
+        type: "main_stone_missing",
+        severity: "error",
+        title: "主石位缺失",
+        description: "该批次主石位未分配任何宝石",
+        gemIds: [],
+        position: "主石位",
+        action: "请在主石位分配一颗主石",
+        resolved: false,
+      });
+    } else if (mainStoneGems.length > 1) {
+      issues.push({
+        id: `issue-${Date.now()}-2`,
+        type: "main_stone_duplicate",
+        severity: "error",
+        title: "主石位不唯一",
+        description: `主石位分配了 ${mainStoneGems.length} 颗宝石，应当仅允许 1 颗`,
+        gemIds: mainStoneGems.map((g) => g.id),
+        position: "主石位",
+        action: "请移除多余的主石，仅保留一颗",
+        resolved: false,
+      });
+    }
+
+    const surroundPositions = ["围石A组", "围石B组", "围石C组"];
+    surroundPositions.forEach((pos) => {
+      const posGems = groupedBySetting.get(pos) || [];
+      const requiredCount = orderReq?.positionRequirements[pos] || 0;
+      if (requiredCount > 0 && posGems.length < requiredCount) {
+        issues.push({
+          id: `issue-${Date.now()}-${pos}`,
+          type: "surround_stone_insufficient",
+          severity: "error",
+          title: `${pos}数量不足`,
+          description: `${pos}需要 ${requiredCount} 颗，当前仅有 ${posGems.length} 颗，缺少 ${requiredCount - posGems.length} 颗`,
+          gemIds: posGems.map((g) => g.id),
+          position: pos,
+          action: `请补充 ${requiredCount - posGems.length} 颗宝石到${pos}`,
+          resolved: false,
+        });
+      }
+    });
+
+    const needConfirmGems = batchGems.filter((g) => g.status === "需客户确认");
+    if (needConfirmGems.length > 0) {
+      issues.push({
+        id: `issue-${Date.now()}-confirm`,
+        type: "customer_confirm_pending",
+        severity: "warning",
+        title: "存在需客户确认的宝石",
+        description: `有 ${needConfirmGems.length} 颗宝石仍需客户确认状态，无法进行下一步处理`,
+        gemIds: needConfirmGems.map((g) => g.id),
+        action: "请联系客户确认后更新状态为\"已完成\"或\"待镶嵌\"",
+        resolved: false,
+      });
+    }
+
+    const notCompletedGems = batchGems.filter((g) => g.status !== "已完成" && g.status !== "需客户确认");
+    if (notCompletedGems.length > 0) {
+      issues.push({
+        id: `issue-${Date.now()}-incomplete`,
+        type: "stone_not_completed",
+        severity: "warning",
+        title: "存在未完成的宝石",
+        description: `有 ${notCompletedGems.length} 颗宝石尚未完成分拣`,
+        gemIds: notCompletedGems.map((g) => g.id),
+        action: "请完成所有宝石的分拣流程",
+        resolved: false,
+      });
+    }
+
+    const allPositions = new Set([
+      ...Array.from(groupedBySetting.keys()),
+      ...(orderReq ? Object.keys(orderReq.positionRequirements) : []),
+    ]);
+
+    allPositions.forEach((pos) => {
+      const posGems = groupedBySetting.get(pos) || [];
+      const requiredCount = orderReq?.positionRequirements[pos] || 0;
+      let status: "ok" | "warning" | "error" = "ok";
+      if (requiredCount > 0 && posGems.length < requiredCount) {
+        status = "error";
+      } else if (pos === "主石位" && posGems.length > 1) {
+        status = "error";
+      } else if (posGems.some((g) => g.status === "需客户确认")) {
+        status = "warning";
+      }
+      positions.push({
+        position: pos,
+        requiredCount,
+        actualCount: posGems.length,
+        gems: posGems,
+        status,
+      });
+    });
+
+    const hasErrors = issues.some((i) => i.severity === "error");
+    const hasWarnings = issues.some((i) => i.severity === "warning");
+    const canDeliver = !hasErrors && !hasWarnings;
+    const pass = !hasErrors;
+
+    const totalGems = batchGems.length;
+    const completedGems = batchGems.filter((g) => g.status === "已完成").length;
+    const pendingGems = batchGems.filter((g) => g.status === "待分拣" || g.status === "待镶嵌").length;
+    const needConfirmGemsCount = needConfirmGems.length;
+
+    return {
+      batchId: batch.id,
+      batchNo: batch.batchNo,
+      orderNo: batch.orderNo,
+      customerName: batch.customerName,
+      reviewedAt: new Date().toLocaleString("zh-CN"),
+      totalGems,
+      completedGems,
+      pendingGems,
+      needConfirmGems: needConfirmGemsCount,
+      positions,
+      issues,
+      canDeliver,
+      pass,
+    };
+  };
+
+  const updateBatchReviewStatus = (batchId: string, status: ReviewStatus, isDeliverable: boolean, remark?: string) => {
+    setBatches((prev) =>
+      prev.map((b) =>
+        b.id === batchId
+          ? {
+              ...b,
+              reviewStatus: status,
+              isDeliverable,
+              reviewRemark: remark,
+              reviewedAt: new Date().toLocaleString("zh-CN"),
+            }
+          : b
+      )
+    );
+  };
+
+  const resolveIssue = (issueId: string) => {
+    if (!reviewResult) return;
+    setReviewResult({
+      ...reviewResult,
+      issues: reviewResult.issues.map((i) =>
+        i.id === issueId ? { ...i, resolved: true } : i
+      ),
+    });
   };
 
   const openGemDetailDrawer = (gemId: string) => {
@@ -2266,6 +2534,391 @@ function App() {
     </>
   );
 
+  const renderReviewStatusTag = (status?: ReviewStatus, isDeliverable?: boolean) => {
+    const statusMap: Record<ReviewStatus, { label: string; className: string; icon: string }> = {
+      "未复核": { label: "未复核", className: "review-status-pending", icon: "⏳" },
+      "复核中": { label: "复核中", className: "review-status-reviewing", icon: "🔍" },
+      "复核通过": { label: "复核通过", className: "review-status-passed", icon: "✅" },
+      "复核不通过": { label: "复核不通过", className: "review-status-failed", icon: "❌" },
+    };
+    const s = status || "未复核";
+    const info = statusMap[s];
+    return (
+      <span className={`review-status-tag ${info.className}`}>
+        {info.icon} {info.label}
+        {isDeliverable && <span className="deliverable-badge">可交付</span>}
+      </span>
+    );
+  };
+
+  const renderSeverityTag = (severity: IssueSeverity) => {
+    const map: Record<IssueSeverity, { label: string; className: string }> = {
+      error: { label: "严重", className: "severity-error" },
+      warning: { label: "警告", className: "severity-warning" },
+      info: { label: "提示", className: "severity-info" },
+    };
+    const info = map[severity];
+    return <span className={`severity-tag ${info.className}`}>{info.label}</span>;
+  };
+
+  const handleStartReview = (batchId: string) => {
+    const result = generateReviewChecklist(batchId);
+    setReviewResult(result);
+    setSelectedReviewBatchId(batchId);
+    setShowReviewResult(true);
+    setReviewRemark("");
+    updateBatchReviewStatus(batchId, "复核中", false);
+  };
+
+  const handlePassReview = () => {
+    if (!reviewResult) return;
+    const hasUnresolvedErrors = reviewResult.issues.some((i) => i.severity === "error" && !i.resolved);
+    if (hasUnresolvedErrors) {
+      alert("存在未解决的严重问题，无法通过复核！");
+      return;
+    }
+    const canDeliver = reviewResult.issues.every((i) => i.resolved || i.severity !== "error");
+    updateBatchReviewStatus(reviewResult.batchId, "复核通过", canDeliver, reviewRemark);
+    setShowReviewResult(false);
+    setReviewResult(null);
+    setSelectedReviewBatchId(null);
+    alert("复核已通过！");
+  };
+
+  const handleFailReview = () => {
+    if (!reviewResult) return;
+    if (!reviewRemark.trim()) {
+      alert("请填写复核不通过的原因！");
+      return;
+    }
+    updateBatchReviewStatus(reviewResult.batchId, "复核不通过", false, reviewRemark);
+    setShowReviewResult(false);
+    setReviewResult(null);
+    setSelectedReviewBatchId(null);
+    alert("复核不通过已记录！");
+  };
+
+  const reviewStats = useMemo(() => {
+    const unreviewed = batches.filter((b) => !b.reviewStatus || b.reviewStatus === "未复核").length;
+    const reviewing = batches.filter((b) => b.reviewStatus === "复核中").length;
+    const passed = batches.filter((b) => b.reviewStatus === "复核通过").length;
+    const failed = batches.filter((b) => b.reviewStatus === "复核不通过").length;
+    const deliverable = batches.filter((b) => b.isDeliverable).length;
+    return { unreviewed, reviewing, passed, failed, deliverable, total: batches.length };
+  }, [batches]);
+
+  const renderReview = () => {
+
+    return (
+      <>
+        <section className="review-metrics">
+          <article className="review-metric-card total">
+            <div className="review-metric-icon">📦</div>
+            <div>
+              <small>批次总数</small>
+              <strong>{reviewStats.total}</strong>
+            </div>
+          </article>
+          <article className="review-metric-card pending">
+            <div className="review-metric-icon">⏳</div>
+            <div>
+              <small>待复核</small>
+              <strong>{reviewStats.unreviewed}</strong>
+            </div>
+          </article>
+          <article className="review-metric-card reviewing">
+            <div className="review-metric-icon">🔍</div>
+            <div>
+              <small>复核中</small>
+              <strong>{reviewStats.reviewing}</strong>
+            </div>
+          </article>
+          <article className="review-metric-card passed">
+            <div className="review-metric-icon">✅</div>
+            <div>
+              <small>已通过</small>
+              <strong>{reviewStats.passed}</strong>
+            </div>
+          </article>
+          <article className="review-metric-card failed">
+            <div className="review-metric-icon">❌</div>
+            <div>
+              <small>未通过</small>
+              <strong>{reviewStats.failed}</strong>
+            </div>
+          </article>
+          <article className="review-metric-card deliverable">
+            <div className="review-metric-icon">📤</div>
+            <div>
+              <small>可交付</small>
+              <strong>{reviewStats.deliverable}</strong>
+            </div>
+          </article>
+        </section>
+
+        <section className="panel review-panel">
+          <div className="heading">
+            <div>
+              <p>批次复核</p>
+              <h2>分拣批次复核清单</h2>
+            </div>
+            <span className="result-count">共 {batches.length} 个批次</span>
+          </div>
+
+          <div className="review-batch-list">
+            {batches.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">📦</div>
+                <p>暂无批次数据</p>
+              </div>
+            ) : (
+              batches.map((batch, index) => {
+                const batchGems = getBatchGems(batch.id);
+                const counts = batchStatusCounts[batch.id] || emptyBatchStatusCounts();
+                return (
+                  <article key={batch.id} className="review-batch-card">
+                    <div className="review-batch-header">
+                      <div className="review-batch-index">
+                        <b>{String(index + 1).padStart(2, "0")}</b>
+                      </div>
+                      <div className="review-batch-info">
+                        <div className="review-batch-title-row">
+                          <h3>{batch.batchNo}</h3>
+                          <span className="batch-tag">订单 {batch.orderNo}</span>
+                          {renderReviewStatusTag(batch.reviewStatus, batch.isDeliverable)}
+                        </div>
+                        <p className="review-batch-customer">
+                          👤 {batch.customerName}
+                          {batch.expectedDate && <span className="batch-date">📅 预计交付：{batch.expectedDate}</span>}
+                        </p>
+                        {batch.remark && <p className="batch-remark">📝 {batch.remark}</p>}
+                        {batch.reviewRemark && (
+                          <p className="review-remark">💬 复核备注：{batch.reviewRemark}</p>
+                        )}
+                        {batch.reviewedAt && (
+                          <p className="review-time">⏰ 复核时间：{batch.reviewedAt}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="review-batch-stats">
+                      <div className="stat-item stat-sorting">
+                        <span className="stat-label">待分拣</span>
+                        <span className="stat-value">{counts.sortingCount}</span>
+                      </div>
+                      <div className="stat-item stat-pending">
+                        <span className="stat-label">待镶嵌</span>
+                        <span className="stat-value">{counts.pendingCount}</span>
+                      </div>
+                      <div className="stat-item stat-confirmed">
+                        <span className="stat-label">已完成</span>
+                        <span className="stat-value">{counts.completedCount}</span>
+                      </div>
+                      <div className="stat-item stat-defect">
+                        <span className="stat-label">需确认</span>
+                        <span className="stat-value">{counts.defectCount}</span>
+                      </div>
+                      <div className="stat-item stat-total">
+                        <span className="stat-label">总计</span>
+                        <span className="stat-value">{batchGems.length}</span>
+                      </div>
+                    </div>
+
+                    <div className="review-batch-footer">
+                      <button
+                        className="primary"
+                        onClick={() => handleStartReview(batch.id)}
+                      >
+                        🔍 {batch.reviewStatus && batch.reviewStatus !== "未复核" ? "重新复核" : "开始复核"}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })
+            )}
+          </div>
+        </section>
+
+        {showReviewResult && reviewResult && (
+          <div className="modal-overlay" onClick={() => setShowReviewResult(false)}>
+            <div className="modal-content review-result-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <div>
+                  <p>复核结果</p>
+                  <h2>{reviewResult.batchNo} · 复核清单</h2>
+                </div>
+                <button className="modal-close" onClick={() => setShowReviewResult(false)}>✕</button>
+              </div>
+
+              <div className="modal-body">
+                <div className="review-result-header">
+                  <div className="review-result-meta">
+                    <div className="review-meta-item">
+                      <small>客户</small>
+                      <strong>{reviewResult.customerName}</strong>
+                    </div>
+                    <div className="review-meta-item">
+                      <small>订单号</small>
+                      <strong>{reviewResult.orderNo}</strong>
+                    </div>
+                    <div className="review-meta-item">
+                      <small>宝石总数</small>
+                      <strong>{reviewResult.totalGems} 颗</strong>
+                    </div>
+                    <div className="review-meta-item">
+                      <small>已完成</small>
+                      <strong>{reviewResult.completedGems} 颗</strong>
+                    </div>
+                    <div className="review-meta-item">
+                      <small>进行中</small>
+                      <strong>{reviewResult.pendingGems} 颗</strong>
+                    </div>
+                    <div className="review-meta-item">
+                      <small>需确认</small>
+                      <strong>{reviewResult.needConfirmGems} 颗</strong>
+                    </div>
+                  </div>
+
+                  <div className={`review-result-summary ${reviewResult.pass ? "pass" : "fail"}`}>
+                    <div className="summary-icon">
+                      {reviewResult.pass ? "✅" : "⚠️"}
+                    </div>
+                    <div>
+                      <h3>{reviewResult.pass ? "复核通过" : "存在问题"}</h3>
+                      <p>
+                        {reviewResult.canDeliver
+                          ? "所有检查项已通过，批次可交付"
+                          : `存在 ${reviewResult.issues.filter((i) => !i.resolved).length} 个待解决问题`}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="review-checklist-section">
+                  <h3 className="section-title">📋 镶嵌位置复核清单</h3>
+                  <div className="position-checklist">
+                    {reviewResult.positions.map((pos) => (
+                      <div key={pos.position} className={`position-check-item status-${pos.status}`}>
+                        <div className="position-check-header">
+                          <span className="position-icon">
+                            {pos.status === "ok" ? "✅" : pos.status === "error" ? "❌" : "⚠️"}
+                          </span>
+                          <span className="position-name">{pos.position}</span>
+                          <span className="position-count">
+                            {pos.actualCount} / {pos.requiredCount || "-"}
+                            {pos.requiredCount > 0 && pos.actualCount < pos.requiredCount && (
+                              <span className="position-missing"> (缺少 {pos.requiredCount - pos.actualCount})</span>
+                            )}
+                          </span>
+                        </div>
+                        {pos.gems.length > 0 && (
+                          <div className="position-gem-list">
+                            {pos.gems.map((g) => (
+                              <div
+                                key={g.id}
+                                className={`position-gem-item ${g.status === "需客户确认" ? "need-confirm" : ""}`}
+                                onClick={() => openGemDetailDrawer(g.id)}
+                              >
+                                <span className="gem-code">{g.code}</span>
+                                <span className="gem-type">{g.type}</span>
+                                <span className="gem-carat">{g.carat}ct</span>
+                                {renderStatusTag(g.status)}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {reviewResult.issues.length > 0 && (
+                  <div className="review-issues-section">
+                    <h3 className="section-title">
+                      ⚠️ 问题列表 ({reviewResult.issues.filter((i) => !i.resolved).length} 待解决)
+                    </h3>
+                    <div className="issues-list">
+                      {reviewResult.issues.map((issue) => (
+                        <div
+                          key={issue.id}
+                          className={`issue-card severity-${issue.severity} ${issue.resolved ? "resolved" : ""}`}
+                        >
+                          <div className="issue-header">
+                            <div className="issue-title-row">
+                              {renderSeverityTag(issue.severity)}
+                              <h4>{issue.title}</h4>
+                              {issue.resolved && <span className="resolved-badge">已解决</span>}
+                            </div>
+                            <button
+                              className={`resolve-btn ${issue.resolved ? "resolved" : ""}`}
+                              onClick={() => resolveIssue(issue.id)}
+                              disabled={issue.resolved}
+                            >
+                              {issue.resolved ? "✓ 已解决" : "标记解决"}
+                            </button>
+                          </div>
+                          <p className="issue-description">{issue.description}</p>
+                          {issue.action && (
+                            <p className="issue-action">
+                              <strong>操作建议：</strong>{issue.action}
+                            </p>
+                          )}
+                          {issue.gemIds.length > 0 && (
+                            <div className="issue-gems">
+                              <span className="issue-gems-label">相关宝石：</span>
+                              {issue.gemIds.map((gemId) => {
+                                const gem = gemstones.find((g) => g.id === gemId);
+                                return gem ? (
+                                  <span
+                                    key={gemId}
+                                    className="issue-gem-tag"
+                                    onClick={() => openGemDetailDrawer(gemId)}
+                                  >
+                                    {gem.code}
+                                  </span>
+                                ) : null;
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="review-remark-section">
+                  <label className="remark-label">
+                    <span>复核备注</span>
+                    <textarea
+                      placeholder="填写复核相关备注信息..."
+                      value={reviewRemark}
+                      onChange={(e) => setReviewRemark(e.target.value)}
+                      rows={3}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="review-result-footer">
+                <button onClick={() => setShowReviewResult(false)}>取消</button>
+                <button className="fail-btn" onClick={handleFailReview}>
+                  ❌ 复核不通过
+                </button>
+                <button
+                  className="primary pass-btn"
+                  onClick={handlePassReview}
+                  disabled={reviewResult.issues.some((i) => i.severity === "error" && !i.resolved)}
+                >
+                  ✅ 复核通过
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  };
+
   const renderExportSummaryModal = () => {
     if (!showExportSummary) return null;
     const summaryText = generateExportSummaryText();
@@ -2550,12 +3203,19 @@ function App() {
         >
           📋 按订单查看
         </button>
+        <button
+          className={currentView === "review" ? "tab-btn active" : "tab-btn"}
+          onClick={() => setCurrentView("review")}
+        >
+          ✅ 批次复核
+        </button>
       </section>
 
       {currentView === "workbench" && renderWorkbench()}
       {currentView === "kanban" && renderKanban()}
       {currentView === "orderList" && renderOrderList()}
       {currentView === "orderDetail" && renderOrderDetail()}
+      {currentView === "review" && renderReview()}
       {renderExportSummaryModal()}
       {renderGemDetailDrawer()}
     </main>
